@@ -35,7 +35,7 @@ MongoDB should now be running. If you run into any issues, refer to MongoDB's do
 - [x] Add usernames
 - [x] Add HTML prevention
 - [x] Add server commands
-- [x] Add user & admin commands // DELETE MESSAGES WITH SPECIFIC TEXT
+- [x] Add user & admin commands
 - [x] Add server messages from cmd
 - [x] Add userlist
 - [x] Add database
@@ -50,6 +50,7 @@ MongoDB should now be running. If you run into any issues, refer to MongoDB's do
 - [x] Add "edit previous message" feature
 - [x] Add an options menu
 - [x] Add function comments
+- [ ] Add a command to delete messages with specific text
 - [ ] Add status (user idle, user is typing..., etc)
 - [ ] Add formatting
 - [ ] Write a client in VB.net
