@@ -1,0 +1,70 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+	<title>ChatProject</title>
+	<link href="css/chat.css" rel="stylesheet" type="text/css"/>
+	<link href="css/bootstrap-tooltip.css" rel="stylesheet" type="text/css"/>
+</head>
+
+<body background="images/bg.png">
+	<div id="body">
+	<input type="button" id="btnOptions" class="options"/>
+		<div id="registerForm">
+				<h1>Chat Project</h1>
+				<p>Please enter a username and a password for the chat</p>
+				<div id="input-box">
+					<input type="text" id="regUsername" autocomplete="off" placeholder="Username"/>
+				</div>
+				<div id="input-box">
+					<input type="password" id="regPassword" autocomplete="off" placeholder="Password"/>
+				</div>
+				<div id="input-box">
+					<input type="password" id="regpasswordConfirm" autocomplete="off" placeholder="Confirm Password"/>
+				</div>
+				<input type="button" id="btnSubmit" class="registerSubmit" onclick="" value="Submit"/>
+		</div>
+		<div id="login">
+			<h1>Chat Project</h1>
+			<p>Please login below</p>
+			<div id="input-box">
+				<input type="text" id="username" autocomplete="off" placeholder="Username"/>
+			</div>
+			<div id="input-box">
+				<input type="password" id="password" autocomplete="off" placeholder="Password"/>
+			</div>
+			<input type="button" id="btnLogin" class="login" onclick="" value="Login" />
+			<input type="button" id="btnRegister" class="register" onclick="" value="Register"/>
+		</div>
+		<div id="chat">
+			<h1>Chat Project</h1>
+			<div id="online-list">
+				<div id="online-users"></div>
+			</div>
+			<div id="chat-box">
+				<div id="chat-textarea"></div>
+			</div>
+			<input id="send" class="create" type="button" onclick="" value="Send"/>
+			<div id="reply-box">
+				<input type="text" contenteditable="true" id="reply" autocomplete="off" placeholder="Type your message..."/>
+			</div>
+		</div>
+		<div id="options">
+			<h1>Options</h1>
+			<div id="options_list">
+				<input id="checkbox1" type="checkbox"/>
+				<label for="checkbox1">Sound notifications</label>
+				<br/><br/>
+				<input type="button" id="btnSave" class="registerSubmit" onclick="" value="Save"/>
+			</div>
+		</div>
+	</div>
+	<script src="js/socket.io-1.2.0.js"></script>
+	<script src="js/jquery-1.11.1.js"></script>
+	<script src="js/bootstrap.min.js"></script>
+	<script src="js/chat.js"></script>
+	<script src="js/perfect-scrollbar.jquery.js"></script>
+	<script src="js/moment.min.js" type="text/javascript"></script>
+</body>
+
+</html>

@@ -1,0 +1,13 @@
+{
+  "name": "ChatProject",
+  "version": "0.0.1",
+  "description": "An always-evolving chat.",
+  "dependencies": {
+    "express": "^4.10.2",
+    "socket.io": "^1.3.5"
+  },
+  "repository" : { 
+   "type" : "git",
+   "url" : "http://github.com/Crypting/chat.git"
+ }
+}
