@@ -1,6 +1,6 @@
 /**
  * @fileoverview Handles all commands used in
- *     the chat and server
+ * 	the chat and server
  * @author xCryptic (Github)
  */
 

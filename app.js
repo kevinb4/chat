@@ -94,7 +94,7 @@ io.on('connection', function (socket) {
 			delete users[socket.username]; // remove user from list
 		if (socket.username in admins)
 			delete admins[socket.username]; // remove admin from list
-		functions.updateNicknames(io, users);
+		functions.updateNicknames(io, users, admins);
 		console.log(time + cmdServerMsg + 'User Left: ' + socket.username);
 		io.emit('chat message', message);
 		saveMsg = new chat({ txtID: getID, msg: message, username: '[Server]' });

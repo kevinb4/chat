@@ -311,21 +311,21 @@ socket.on('delete message', function(data) {
  * @param {data}
  */
 socket.on('usernames', function (data) {
-	var html = '';
+	var list = '';
 	for (var i = 0; i < data.length; i++) {
-		html += data[i] + '<br/>';
+		list += data[i];
 	}
-	users.html(html);
+	document.getElementById('online-users').innerHTML = list;
 });
 
 /**
  * Handles disconnecting
  */
 socket.on('disconnect', function () {
-	textarea.html(""); // clear the chat
-	users.html(""); // clear the userlist
+	textarea.html(''); // clear the chat
+	users.html(''); // clear the userlist
 	appendMessage('<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + moment().format('LLLL') + '" onclick="clickHandler(this);">' + moment().format('LT') + '</font> <font color="#5E97FF"><b>[Server]</b> You have been disconnected</font><br/>');
-	reply.fadeOut("slow", function() { }); // so the user can no longer type
+	reply.fadeOut('slow', function() { }); // so the user can no longer type
 });
 
 /**
@@ -333,8 +333,8 @@ socket.on('disconnect', function () {
  * @param {msgs}
  */
 socket.on('load messages', function (msgs) {
-	var txt = $("#chat-textarea");
-	if (txt.text().indexOf("You have been disconnected") !== -1) { // this way, the messages won't load in if the user is still on the div chat
+	var txt = $('#chat-textarea');
+	if (txt.text().indexOf('You have been disconnected') !== -1) { // this way, the messages won't load in if the user is still on the div chat
 		appendMessage('<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + moment().format('LLLL') + '" onclick="clickHandler(this);">' + moment().format('LT') + '</font> <font color="#5E97FF"><b>[Server]</b> A connection has been made to the server, please reload the page</font><br/>')
 		/*setTimeout(function(){ // automatically reload the page?
 			window.location.reload();

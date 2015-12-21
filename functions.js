@@ -60,10 +60,10 @@ exports.register = function (registerData, callback) {
 							saveUser.save(function (errormsg) {
 								if (errormsg) {
 									console.log(moment().format('LT') + cmdErrorMsg + errormsg);
-									callback('An cmdErrorMsg has occoured, please contact an administrator');
+									callback('An Error has occoured, please contact an administrator');
 								} else {
 									callback('success');
-									console.log(moment().format('LT') + serverMsg + 'New user: ' + dataUsername);
+									console.log(moment().format('LT') + cmdServerMsg + 'New user: ' + dataUsername);
 								}
 							});
 					//	}
@@ -118,7 +118,7 @@ exports.login = function (data, callback, socket, io, admins, users) {
 								if (dbisAdmin === true) {
 									admins[socket.username]++;
 								}
-								functions.updateNicknames(io, users);
+								functions.updateNicknames(io, users, admins);
 								console.log(time + cmdServerMsg + 'User Joined: ' + socket.username);
 								users[socket.username].emit('settings', dbOptSound);
 								io.emit('chat message', message);
@@ -277,6 +277,15 @@ exports.getURL = function (text) {
  * @param {io}
  * @param {users}
  */
-exports.updateNicknames = function (io, users) {
-	io.sockets.emit('usernames', Object.keys(users));
+exports.updateNicknames = function (io, users, admins) {
+	var usernamesArray = [],
+		userArray = Object.keys(users);
+	for (user in userArray) {
+		if (userArray[user] in admins) {
+			usernamesArray[user] = '<b><font color="#2471FF">' + userArray[user] + '</font></b><br/>';
+		} else {
+			usernamesArray[user] = userArray[user] + '<br/>'
+		}
+	}
+	io.sockets.emit('usernames', usernamesArray);
 }
