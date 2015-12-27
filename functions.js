@@ -284,7 +284,7 @@ exports.updateNicknames = function (io, users, admins) {
 		if (userArray[user] in admins) {
 			usernamesArray[user] = '<b><font color="#2471FF">' + userArray[user] + '</font></b><br/>';
 		} else {
-			usernamesArray[user] = userArray[user] + '<br/>'
+			usernamesArray[user] = '<b>' + userArray[user] + '</b><br/>'
 		}
 	}
 	io.sockets.emit('usernames', usernamesArray);

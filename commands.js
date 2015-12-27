@@ -475,6 +475,7 @@ module.exports = {
 								saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
 								if (name in users) // If the user is online
 									admins[name]++; // have that user added to the admin group
+								functions.updateNicknames(io, users, admins); // reload the userlist
 							}
 						} else if (trufal == 'false') { // if the user enters false
 							if (result[0].isAdmin === false) {
@@ -487,6 +488,7 @@ module.exports = {
 								saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
 								if (name in admins) // if the user is online
 									delete admins[name]; // have that user removed from the admin group
+								functions.updateNicknames(io, users, admins); // reload the userlist
 							}
 						} else {
 							console.log(time + cmdErrorMsg + 'You must enter true or false')
