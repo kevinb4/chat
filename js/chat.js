@@ -13,7 +13,7 @@ var socket = io(),
 	regpasswordConfirm = $('#regpasswordConfirm'),
 	txtUsername = $('#username'),
 	txtPassword = $('#password'),
-	loginform = $('#login'),
+	loginForm = $('#login'),
 	registerForm = $('#registerForm'),
 	chat = $('#chat'),
 	chatbox = $('#chat-box'),
@@ -35,7 +35,7 @@ function login() {
 	var loginDetails = { username : txtUsername.val(), password : txtPassword.val() }
 	socket.emit('user login', loginDetails, function (data) {
 		if (data == 'success') { // have the server check if the username is valid
-			loginform.fadeOut("slow", function () {
+			loginForm.fadeOut("slow", function () {
 				chat.fadeIn("slow", function () { }); // fade into the chatbox
 				btnOptions.fadeIn("slow", function () { });
 				chatbox.scrollTop($(chatbox).get(0).scrollHeight); // scroll to the bottom
@@ -77,6 +77,20 @@ function appendMessage(msg) {
 		chatbox.perfectScrollbar('update');
 	}
 }
+
+/**
+ * Adds the recent messages recieved from the server
+ * @param {msgs}
+ */
+function loadMessages(msgs) {
+	for (var i = msgs.length - 1; i >= 0; i--) {
+		var localTime = moment(msgs[i].msg[0].time).format('LT'),
+			localDate = moment(msgs[i].msg[0].time).format('LLLL');
+
+		appendMessage(msgs[i].msg[0].idSpan + '<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].msg[0].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].msg[0].user + msgs[i].msg[0].message + '</font><br/>');
+	}
+}
+
 /**
  * Checks if the window is fucoused
  */
@@ -132,7 +146,7 @@ txtPassword.keypress(function(e) {
  * Handles clicking the register button
  */
 btnRegister.click(function() {
-	loginform.fadeOut("slow", function () {
+	loginForm.fadeOut("slow", function () {
 		registerForm.fadeIn("slow", function () { });
 	});
 });
@@ -152,7 +166,7 @@ btnSubmit.click(function() {
 			if (data == 'success') {
 				alert('Signup successful! You may now login');
 				registerForm.fadeOut("slow", function () {
-					loginform.fadeIn("slow", function () { });
+					loginForm.fadeIn("slow", function () { });
 				});
 			} else {
 				alert(data);
@@ -335,16 +349,13 @@ socket.on('disconnect', function () {
 socket.on('load messages', function (msgs) {
 	var txt = $('#chat-textarea');
 	if (txt.text().indexOf('You have been disconnected') !== -1) { // this way, the messages won't load in if the user is still on the div chat
-		appendMessage('<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + moment().format('LLLL') + '" onclick="clickHandler(this);">' + moment().format('LT') + '</font> <font color="#5E97FF"><b>[Server]</b> A connection has been made to the server, please reload the page</font><br/>')
-		/*setTimeout(function(){ // automatically reload the page?
-			window.location.reload();
-		}, 5000);*/
+		chat.fadeOut("slow", function () {
+			loginForm.fadeIn("slow", function () { }); // fade into the chatbox
+			reply.fadeIn('slow', function() { }); // so the user can type again
+			textarea.html(''); // clear the chat
+			loadMessages(msgs);
+		});
 	} else {
-		for (var i = msgs.length - 1; i >= 0; i--) {
-			var localTime = moment(msgs[i].msg[0].time).format('LT'),
-				localDate = moment(msgs[i].msg[0].time).format('LLLL');
-
-			appendMessage(msgs[i].msg[0].idSpan + '<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].msg[0].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].msg[0].user + msgs[i].msg[0].message + '</font><br/>');
-		}
+		loadMessages(msgs);
 	}
 });
