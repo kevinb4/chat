@@ -276,6 +276,7 @@ exports.getURL = function (text) {
  * Updates the userlist
  * @param {io}
  * @param {users}
+ * @param {admins}
  */
 exports.updateNicknames = function (io, users, admins) {
 	var uNames = [],

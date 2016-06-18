@@ -228,9 +228,11 @@ stdin.on('data', function (data) {
 			time = now.format('LT'),
 			fulldate = now.format('LLLL'),
 			getID = functions.guid(),
-			idSpan = '<span id="' + getID + '">';
-		io.emit('chat message', { id: getID, idSpan: idSpan, time: now, user: serverMsg, message: input });
-		saveMsg = new chat({ txtID: getID, msg: input, username: '[Server]' });
+			idSpan = '<span id="' + getID + '">'
+			message = { id: getID, idSpan: idSpan, time: now, user: serverMsg, message: input };
+
+		io.emit('chat message', message);
+		saveMsg = new chat({ txtID: getID, msg: message, username: '[Server]', deleted: false });
 		saveMsg.save(function (errormsg) { if (errormsg) console.log(time + cmdErrorMsg + errormsg); });
 	}
 });

@@ -453,7 +453,7 @@ module.exports = {
 			getID = functions.guid(),
 			idSpan = '<span id="' + getID + '">';
 		input = input.substr(6);
-		index = input.indexOf(' '); // find the space, where the message starts
+		index = input.indexOf(' '); // find the space
 		if (index != -1) { // checks to see if the space exists
 			var name = input.substring(0, index), // set the name
 				trufal = input.substring(index + 1), // set the true/false
