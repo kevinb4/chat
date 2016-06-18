@@ -1,9 +1,6 @@
 #Chat
 This is a chat I started from scratch (check out the chat-legacy for previous commits). It's been a great learning experience so far, and I plan to work on it here and there.
 
-#Test Server
-A test server has been setup here http://chatproject.noip.me:3000/
-
 #Requirements
 - Node.js must be installed (found here http://nodejs.org/)
 - MongoDB must be installed and running (found here https://www.mongodb.org/)

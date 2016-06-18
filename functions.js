@@ -278,14 +278,22 @@ exports.getURL = function (text) {
  * @param {users}
  */
 exports.updateNicknames = function (io, users, admins) {
-	var usernamesArray = [],
-		userArray = Object.keys(users);
-	for (user in userArray) {
-		if (userArray[user] in admins) {
-			usernamesArray[user] = '<b><font color="#2471FF">' + userArray[user] + '</font></b><br/>';
+	var uNames = [],
+		aNames = [],
+		allUsers = [],
+		usersToArray = Object.keys(users),
+		adminsToArray = Object.keys(admins);
+
+	for(var i = 0; i < usersToArray.length; i++) {
+		if (adminsToArray.indexOf(usersToArray[i]) == -1) {
+			uNames.push('<b>' + usersToArray[i] + '</b><br/>');
 		} else {
-			usernamesArray[user] = '<b>' + userArray[user] + '</b><br/>'
+			aNames.push('<b><font color="#2471FF">' + usersToArray[i] + '</font></b><br/>');
 		}
+
 	}
-	io.sockets.emit('usernames', usernamesArray);
+	aNames.sort();
+	uNames.sort();
+	allUsers = aNames.concat(uNames);
+	io.sockets.emit('usernames', allUsers);
 }
