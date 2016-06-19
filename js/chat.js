@@ -33,11 +33,12 @@ var socket = io(),
  */
 function login() {
 	var loginDetails = { username : txtUsername.val(), password : txtPassword.val() }
+
 	socket.emit('user login', loginDetails, function (data) {
 		if (data == 'success') { // have the server check if the username is valid
-			loginForm.fadeOut("slow", function () {
-				chat.fadeIn("slow", function () { }); // fade into the chatbox
-				btnOptions.fadeIn("slow", function () { });
+			loginForm.fadeOut('slow', function () {
+				chat.fadeIn('slow', function () { }); // fade into the chatbox
+				btnOptions.fadeIn('slow', function () { });
 				chatbox.scrollTop($(chatbox).get(0).scrollHeight); // scroll to the bottom
 			});
 		} else {
@@ -52,11 +53,11 @@ function login() {
 function sendMessage() {
 	if (isEdit === true) {
 		socket.emit('edit message', reply.val());
-		reply.val(""); // clear the reply box
+		reply.val(''); // clear the reply box
 		isEdit = false;
 	} else {
 		socket.emit('chat message', reply.val()); // emit the message
-		reply.val(""); // clear the reply box
+		reply.val(''); // clear the reply box
 	}
 }
 
@@ -87,7 +88,7 @@ function loadMessages(msgs) {
 		var localTime = moment(msgs[i].msg[0].time).format('LT'),
 			localDate = moment(msgs[i].msg[0].time).format('LLLL');
 
-		appendMessage(msgs[i].msg[0].idSpan + '<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].msg[0].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].msg[0].user + msgs[i].msg[0].message + '</font><br/>');
+		appendMessage('<span id="' + msgs[i].msg[0].id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].msg[0].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].msg[0].user + msgs[i].msg[0].message + '</font><br/>');
 	}
 }
 
@@ -95,7 +96,7 @@ function loadMessages(msgs) {
  * Checks if the window is fucoused
  */
 window.onfocus = function() {
-	document.title = "ChatProject";
+	document.title = 'ChatProject';
 }
 
 /**
@@ -103,7 +104,7 @@ window.onfocus = function() {
  */
 $.extend({
 	playSound: function(){
-		return $("<embed src='" + arguments[0] + ".mp3' hidden='true' autostart='true' loop='false' height='0' width='0' class='playSound'>" + "<audio autoplay='autoplay' style='display:none;' controls='controls'><source src='"+arguments[0]+".mp3' /><source src='"+arguments[0]+".ogg' /></audio>").appendTo('body');
+		return $('<embed src="' + arguments[0] + '.mp3" hidden="true" autostart="true" loop="false" height="0" width="0" class="playSound">' + '<audio autoplay="autoplay" style="display:none;" controls="controls"><source src="' + arguments[0] + '.mp3" /><source src="' + arguments[0] + '.ogg" /></audio>').appendTo('body');
 	}
 });
 
@@ -146,8 +147,8 @@ txtPassword.keypress(function(e) {
  * Handles clicking the register button
  */
 btnRegister.click(function() {
-	loginForm.fadeOut("slow", function () {
-		registerForm.fadeIn("slow", function () { });
+	loginForm.fadeOut('slow', function () {
+		registerForm.fadeIn('slow', function () { });
 	});
 });
 
@@ -156,6 +157,7 @@ btnRegister.click(function() {
  */
 btnSubmit.click(function() {
 	var passLen = regPassword.val();
+
 	if (!regPassword.val() == regpasswordConfirm.val()) {
 		alert('Your passwords do not match');
 	} else if (passLen.length < 2 || passLen.length > 20) {
@@ -165,8 +167,8 @@ btnSubmit.click(function() {
 		socket.emit('register', registerDetails, function (data) {
 			if (data == 'success') {
 				alert('Signup successful! You may now login');
-				registerForm.fadeOut("slow", function () {
-					loginForm.fadeIn("slow", function () { });
+				registerForm.fadeOut('slow', function () {
+					loginForm.fadeIn('slow', function () { });
 				});
 			} else {
 				alert(data);
@@ -179,8 +181,8 @@ btnSubmit.click(function() {
  * Handles clicking the options button
  */
 btnOptions.click(function() {
-	chat.fadeOut("slow", function () {
-		options.fadeIn("slow", function () { });
+	chat.fadeOut('slow', function () {
+		options.fadeIn('slow', function () { });
 	});
 });
 
@@ -189,14 +191,15 @@ btnOptions.click(function() {
  */
 btnSave.click(function() {
 	var checkbox1 = document.getElementById('checkbox1');
+
 	if (checkbox1.checked) {
 		optSound = true;
 	} else {
 		optSound = false;
 	}
 	socket.emit('settings saved', optSound);
-	options.fadeOut("slow", function () {
-		chat.fadeIn("slow", function () { });
+	options.fadeOut('slow', function () {
+		chat.fadeIn('slow', function () { });
 	});
 });
 
@@ -236,11 +239,12 @@ reply.keydown(function(e) {
  */
 var vis = (function(){
 	var stateKey, eventKey, keys = {
-		hidden: "visibilitychange",
-		webkitHidden: "webkitvisibilitychange",
-		mozHidden: "mozvisibilitychange",
-		msHidden: "msvisibilitychange"
+		hidden: 'visibilitychange',
+		webkitHidden: 'webkitvisibilitychange',
+		mozHidden: 'mozvisibilitychange',
+		msHidden: 'msvisibilitychange'
 	};
+
 	for (stateKey in keys) {
 		if (stateKey in document) {
 			eventKey = keys[stateKey];
@@ -261,12 +265,12 @@ socket.on('chat message', function (msg) {
 	var localTime = moment(msg.time).format('LT'),
 		localDate = moment(msg.time).format('LLLL');
 
-	appendMessage(msg.idSpan + '<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msg.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msg.user + msg.message + '</font><br/>');
-	if (chat.is(":visible")) {
+	appendMessage('<span id="' + msg.id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msg.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msg.user + msg.message + '</font><br/>');
+	if (chat.is(':visible')) {
 		if(vis() == true) {
-			document.title = "ChatProject";
+			document.title = 'ChatProject';
 		} else {
-			document.title = "[!] ChatProject";
+			document.title = '[!] ChatProject';
 			var checkbox1 = document.getElementById('checkbox1');
 			if (checkbox1.checked)
 				$.playSound('mp3/alert');
@@ -280,7 +284,16 @@ socket.on('chat message', function (msg) {
  */
 socket.on('settings', function(data) {
 	var checkbox1 = document.getElementById('checkbox1');
+
 	checkbox1.checked = data;
+});
+
+/**
+ * Handles saving settings
+ * @param {data}
+ */
+socket.on('del msg id', function(id) {
+	document.getElementById('reply').value = '/delete ' + id;
 });
 
 /**
@@ -300,7 +313,7 @@ socket.on('rcv prev msg', function (msg) {
  */
 socket.on('edited message', function(data) {
 	var localTime = moment(data.time).format('LT'),
-		localDate = moment(data.time).format('LLLL')
+		localDate = moment(data.time).format('LLLL');
 
 	document.getElementById(data.id).innerHTML = '<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + data.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + data.user + data.message + '<br/>';
 });
@@ -311,7 +324,8 @@ socket.on('edited message', function(data) {
  */
 socket.on('delete message', function(data) {
 	var element = document.getElementById(data);
-	element.outerHTML = "";
+	element.outerHTML = '';
+
 	try {
 		delete element;
 	} catch (err) {
@@ -326,6 +340,7 @@ socket.on('delete message', function(data) {
  */
 socket.on('usernames', function (data) {
 	var list = '';
+
 	for (var i = 0; i < data.length; i++) {
 		list += data[i];
 	}
@@ -348,9 +363,10 @@ socket.on('disconnect', function () {
  */
 socket.on('load messages', function (msgs) {
 	var txt = $('#chat-textarea');
+
 	if (txt.text().indexOf('You have been disconnected') !== -1) { // this way, the messages won't load in if the user is still on the div chat
-		chat.fadeOut("slow", function () {
-			loginForm.fadeIn("slow", function () { }); // fade into the chatbox
+		chat.fadeOut('slow', function () {
+			loginForm.fadeIn('slow', function () { }); // fade into the chatbox
 			reply.fadeIn('slow', function() { }); // so the user can type again
 			textarea.html(''); // clear the chat
 			loadMessages(msgs);

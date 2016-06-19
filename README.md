@@ -27,6 +27,9 @@ start mongod.exe --dbpath "...\chat\db"
 
 MongoDB should now be running. If you run into any issues, refer to MongoDB's docs.
 
+#MongoDB UI
+This isn't required, but I thought I would leave this here. It's very useful for testing/development. Robomongo is a MongoDB Manager that supports Windows, Mac, and Linux. Find it here: https://robomongo.org/
+
 #ToDo List
 - [x] Remake UI/Rewrite code from socket.io tutorial
 - [x] Add usernames

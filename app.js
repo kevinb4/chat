@@ -67,6 +67,7 @@ var commands = require('./commands.js'),
  */
 io.on('connection', function (socket) {
 	var query = chat.find({});
+
 	query.sort('-date').limit(50).exec(function (errormsg, msgs) { // load the last 50 messages in order
 		if (errormsg) console.log(moment().format('LT') + cmdErrorMsg + errormsg);
 		socket.emit('load messages', msgs);
@@ -88,12 +89,13 @@ io.on('connection', function (socket) {
 			time = now.format('LT'),
 			fulldate = now.format('LLLL'),
 			getID = functions.guid(),
-			idSpan = '<span id="' + getID + '">',
-			message = { id: getID, idSpan: idSpan, time: now, user: serverLeaveMsg, message: socket.username + ' has left' };
+			message = { id: getID, time: now, user: serverLeaveMsg, message: socket.username + ' has left' };
+
 		if (!socket.username) return;
 			delete users[socket.username]; // remove user from list
 		if (socket.username in admins)
 			delete admins[socket.username]; // remove admin from list
+
 		functions.updateNicknames(io, users, admins);
 		console.log(time + cmdServerMsg + 'User Left: ' + socket.username);
 		io.emit('chat message', message);
@@ -109,6 +111,7 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('get prev msg', function (message, callback) {
 		var query = chat.find({ username: socket.username });
+
 		query.sort('-date').limit(1).exec(function (errormsg, result) {
 			if (errormsg) console.log(cmdErrorMsg + errormsg);
 			try {
@@ -127,6 +130,7 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('settings saved', function (data) {
 		var query = userdb.find({ username: socket.username });
+
 		query.sort().limit(1).exec(function (errormsg, result) {
 			if (errormsg) {
 				console.log(moment().format('LT') + cmdErrorMsg + errormsg);
@@ -143,6 +147,7 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('edit message', function (data) {
 		var query = chat.find({ username: socket.username });
+
 		query.sort('-date').limit(1).exec(function (errormsg, msg) {
 			if (errormsg) console.log(cmdErrorMsg + errormsg);
 			if (!data == '') {
@@ -163,7 +168,8 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('delete message', function (messageID) {
 		if (socket.username in admins) {
-			commands.adminDelete(messageID, socket, io, users);
+			io.emit('del msg id', messageID);
+			//commands.adminDelete(messageID, socket, io, users);
 		}
 	});
 
@@ -186,6 +192,8 @@ io.on('connection', function (socket) {
 							commands.adminKick(msg, socket, io, users);
 						} else if (msg.substr(0, 5) === '/ban ') {
 							commands.adminBan(msg, socket, io, users);
+						} else if (msg.substr(0, 8) === '/delete ') {
+							commands.adminDelete(msg, socket, io, users);
 						} else if (msg.substr(0, 7) === '/unban ') {
 							commands.adminUnban(msg, socket, users);
 						} else if (msg.substr(0, 6) === '/mute ') {
@@ -211,6 +219,7 @@ var stdin = process.stdin, stdout = process.stdout;
 stdin.resume();
 stdin.on('data', function (data) {
 	var input = data.toString().trim(); // take out any unecessary spaces
+
 	if (input == 'shutdown') { // shutdown command
 		console.log(moment().format('LT') + cmdServerMsg + 'Shutting down...');
 		mongoose.disconnect;
@@ -228,8 +237,7 @@ stdin.on('data', function (data) {
 			time = now.format('LT'),
 			fulldate = now.format('LLLL'),
 			getID = functions.guid(),
-			idSpan = '<span id="' + getID + '">'
-			message = { id: getID, idSpan: idSpan, time: now, user: serverMsg, message: input };
+			message = { id: getID, time: now, user: serverMsg, message: input };
 
 		io.emit('chat message', message);
 		saveMsg = new chat({ txtID: getID, msg: message, username: '[Server]', deleted: false });

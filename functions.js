@@ -39,7 +39,8 @@ exports.register = function (registerData, callback) {
 	var dataUsername = registerData.username, dataPassword = registerData.password,
 		saveUser,
 		user = /^[\w]{1,15}$/,
-	userCheck = userdb.find({ username: dataUsername }); // check to make sure the username doesn't already exist
+		userCheck = userdb.find({ username: dataUsername }); // check to make sure the username doesn't already exist
+
 	userCheck.sort().limit(1).exec(function(errormsg, registerData) {
 		if (errormsg) { 
 			console.log(moment().format('LT') + cmdErrorMsg + errormsg);
@@ -88,6 +89,7 @@ exports.login = function (data, callback, socket, io, admins, users) {
 		login,
 		regex = new RegExp(['^', loginUsername, '$'].join(''), 'i'); // Case insensitive search
 		userCheck = userdb.find({ username: regex });
+
 	userCheck.sort().limit(1).exec(function(errormsg, result) {
 		if (errormsg) { 
 			console.log(moment().format('LT') + cmdErrorMsg + errormsg);
@@ -162,9 +164,9 @@ exports.message = function (msg, socket, io, users) {
 	var now = moment(),
 		time = now.format('LT'),
 		getID = functions.guid(),
-		idSpan = '<span id="' + getID + '">',
 		regex = new RegExp(['^', socket.username, '$'].join(''), 'i'),
 		userCheck = userdb.find({ username: regex }); // check to make sure the user exists
+
 	userCheck.sort().limit(1).exec(function(errormsg, result) {
 		if (errormsg) {
 			console.log(time + cmdErrorMsg + errormsg);
@@ -175,7 +177,7 @@ exports.message = function (msg, socket, io, users) {
 				var muteTime = moment(now, 'YYYY-MM-DD HH:mm');
 			}
 			if (muteTime > now) {
-				users[socket.username].emit('chat message', { id: getID, idSpan: idSpan, time: now, user: serverMsg, message: 'You are muted - expires ' + muteTime.fromNow() })
+				users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'You are muted - expires ' + muteTime.fromNow() })
 			} else {
 				if (msg.indexOf('<') == -1) { // check if the user is trying to use html
 					var noHTML = msg; // just so you don't get HTML from the link in the console
@@ -183,8 +185,8 @@ exports.message = function (msg, socket, io, users) {
 						noHTML = functions.getURL(noHTML);
 					}
 					var userName = '<b>' + socket.username + '</b>: ',
-						message = { id: getID, idSpan: idSpan, time: now, user: userName, message: noHTML },
-						rawMessage = { id: getID, idSpan: idSpan, time: now, user: userName, message: msg };
+						message = { id: getID, time: now, user: userName, message: noHTML },
+						rawMessage = { id: getID, time: now, user: userName, message: msg };
 					io.emit('chat message', message);
 					console.log(time + (' [User] ').gray.bold + socket.username + ': ' + msg);
 					saveMsg = new chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
@@ -194,8 +196,8 @@ exports.message = function (msg, socket, io, users) {
 						htmlRemoval = functions.getURL(htmlRemoval);
 					}
 					var userName = '<b>' + socket.username + '</b>: ',
-						message = { id: getID, idSpan: idSpan, time: now, user: userName, message: htmlRemoval },
-						rawMessage = { id: getID, idSpan: idSpan, time: now, user: userName, message: msg };
+						message = { id: getID, time: now, user: userName, message: htmlRemoval },
+						rawMessage = { id: getID, time: now, user: userName, message: msg };
 
 					io.emit('chat message', message);
 					console.log(time + (' [User] ').gray.bold + socket.username + ': ' + msg);
@@ -217,14 +219,14 @@ exports.adminMessage = function (msg, socket, io) {
 	var now = moment(),
 		time = now.format('LT'),
 		getID = functions.guid(),
-		idSpan = '<span id="' + getID + '">',
 		linkMsg = msg; // just so you don't get HTML from the link in the console
+
 	if (linkMsg.indexOf('http') >= 0) { // check to see if there's a link
 		linkMsg = functions.getURL(linkMsg);
 	}
 	var userName = '<b><font color="#2471FF">[Admin] ' + socket.username + '</font></b>: ',
-		message = { id: getID, idSpan: idSpan, time: now, user: userName, message: linkMsg },
-		rawMessage = { id: getID, idSpan: idSpan, time: now, user: userName, message: msg };
+		message = { id: getID, time: now, user: userName, message: linkMsg },
+		rawMessage = { id: getID, time: now, user: userName, message: msg };
 	io.emit('chat message', message);
 	console.log(time + (' [Admin] ').blue.bold + socket.username + ': ' + msg);
 	saveMsg = new chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
@@ -241,6 +243,7 @@ exports.adminMessage = function (msg, socket, io) {
 exports.editMessage = function (msg, socket, admins, rawMsg) {
 	if (socket.username in admins) {
 		var linkMsg = msg; // just so you don't get HTML from the link in the console
+
 		if (linkMsg.indexOf('http') >= 0) { // check to see if there's a link
 			linkMsg = functions.getURL(linkMsg);
 		}
