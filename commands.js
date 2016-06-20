@@ -42,7 +42,6 @@ module.exports = {
 	commands: function (socket, admins, users) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid();
 
 		users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: '..:: Chat Project commands ::..' });
@@ -68,7 +67,6 @@ module.exports = {
 		msg = msg.substr(3); // remove the '/w '
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid(),
 			errormsg = { id: getID, time: now, user: serverMsg, message: 'Please make sure you entered a valid username and a valid message' },
 			index = msg.indexOf(' '); // Find the space, where the message starts
@@ -97,7 +95,6 @@ module.exports = {
 	adminBroadcast: function (command, socket, io) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid();
 
 		if (command.substr(0, 11) === '/broadcast ') {
@@ -123,7 +120,6 @@ module.exports = {
 	adminKick: function (command, socket, io, users) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid();
 
 		target = command.substr(6);
@@ -150,7 +146,6 @@ module.exports = {
 	adminBan: function (command, socket, io, users) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid();
 
 		command = command.substr(5);
@@ -175,6 +170,7 @@ module.exports = {
 							console.log(time + cmdServerMsg + '"' + name + '" has been banned by "' + socket.username + '" for "' + reason + '"');
 							io.emit('chat message', msg);
 							saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+							saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 						}
 					} else {
 						users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'User <b>' + name + '</b> was not found' });
@@ -195,7 +191,6 @@ module.exports = {
 	adminUnban: function (command, socket, users) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid(),
 			name = command.substr(7),
 			regex = new RegExp(['^', name, '$'].join(''), 'i'), // Case insensitive search
@@ -221,6 +216,105 @@ module.exports = {
 	},
 
 	/**
+	 * Changes admins username, or another user's name
+	 * @param {command}
+	 * @param {socket}
+	 * @param {io}
+	 * @param {users}
+	 * @param {admins}
+	 */
+	adminName: function (command, socket, io, users, admins) {
+		command = command.split(' ');
+		var now = moment(),
+			time = now.format('LT'),
+			getID = functions.guid(),
+			name1 = command[1],
+			name2 = command[2],
+			regex = new RegExp(['^', name1, '$'].join(''), 'i'), // case insensitive search
+			userCheck = userdb.find({ username: regex });
+		
+		if (name2 == null) { // admin is changing their own name
+			userCheck.sort().limit(1).exec(function(errormsg, result) {
+				if (errormsg) {
+					console.log(time + cmdErrorMsg + errormsg);
+				} else {
+					if (result.length != 1) {
+						userdb.update({ username: socket.username }, { username: name1 }, function(err, raw) { 
+							if (err) {
+								return console.log(err);
+							} else {
+								delete users[socket.username];
+								users[name1] = socket;
+								delete admins[socket.username];
+								admins[name1]++;
+								
+								functions.updateNicknames(io, users, admins); // reload the userlist
+								var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + socket.username + '</b> has changed their name to <b>' + name1 + '</b>' }
+								console.log(time + cmdServerMsg + '"' + socket.username + '" has changed their name to "' + name1 + '"');
+								socket.username = name1;
+								io.emit('chat message', msg);
+								saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+								saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
+							}
+						});
+					} else {
+						users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'The name <b>' + name1 + '</b> is already taken' });
+					}
+				}
+			});
+		} else { // admin is changing someone else's name
+			userCheck.sort().limit(1).exec(function(errormsg, result) {
+				if (errormsg) {
+					console.log(time + cmdErrorMsg + errormsg);
+				} else {
+					if (result.length == 1) { // make sure the user exists
+						var newUser = new RegExp(['^', name2, '$'].join(''), 'i'), // case insensitive search
+							newUserCheck = userdb.find({ username: newUser }),
+							isAdmin = result[0].isAdmin;
+
+						newUserCheck.sort().limit(1).exec(function(errormsg, result) {
+							if (errormsg) {
+								console.log(time + cmdErrorMsg + errormsg);
+							} else {
+								if (result.length != 1) { // make sure the new username doesn't exist
+									userdb.update({ username: name1 }, { username: name2 }, function(err, raw) { 
+										if (err) {
+											return console.log(err);
+										} else {
+											if (name1 in users) { // if users is online
+												var userSocket = users[name1];
+												delete users[name1];
+												users[name2] = userSocket;
+												userSocket.username = name2;
+											}
+
+											if (isAdmin === true) { // just incase an admin changes another admin's name
+												delete admins[name1];
+												admins[name2]++;
+											}
+
+											functions.updateNicknames(io, users, admins); // reload the userlist
+											var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + socket.username + '</b> has changed <b>' + name1 + '</b> name to <b>' + name2 + '</b>' }
+											console.log(time + cmdServerMsg + '"' + socket.username + '" has changed "' + name1 + '" name to "' + name2 + '"');
+											io.emit('chat message', msg);
+											saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+											saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
+										}
+									});
+								} else {
+									users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'The name <b>' + name2 + '</b> is already taken' });
+								}
+							}
+						});
+					} else {
+						users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'The user <b>' + name1 + '</b> was not found' });
+					}
+				}
+			});
+		}
+	},
+
+	/**
 	 * Deletes a specified message
 	 * @param {messageID}
 	 * @param {socket}
@@ -230,7 +324,6 @@ module.exports = {
 	adminDelete: function (messageID, socket, io, users) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid();
 
 		messageID = messageID.substring(8);
@@ -266,7 +359,6 @@ module.exports = {
 		var now = moment(),
 			modTime = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid(),
 			command = command.split(' '),
 			name = command[1],
@@ -360,7 +452,6 @@ module.exports = {
 	cmdKick: function (input, io, users) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid();
 
 		if (input in users) {
@@ -383,7 +474,6 @@ module.exports = {
 	cmdBan: function (input, io, users) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid();
 
 		input = input.substr(4);
@@ -411,6 +501,7 @@ module.exports = {
 							var msg = { id: getID, time: now, user: serverMsg, message: 'User <b>' + name + '</b> has been banned for <i>' + reason + '</i>' };
 							io.emit('chat message', msg);
 							saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+							saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 						}
 					} else {
 						console.log(time + cmdErrorMsg + 'User "' + name + '" was not found');
@@ -460,7 +551,6 @@ module.exports = {
 	cmdAdmin: function (input, io, users, admins) {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid();
 
 		input = input.substr(6);
@@ -485,6 +575,7 @@ module.exports = {
 								var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + name + '</b> is now an Admin' };
 								io.emit('chat message', msg);
 								saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+								saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 
 								if (name in users) // If the user is online
 									admins[name]++; // have that user added to the admin group
@@ -500,6 +591,7 @@ module.exports = {
 								var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + name + '</b> has been demoted to a user' };
 								io.emit('chat message', msg);
 								saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+								saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 
 								if (name in admins) // if the user is online
 									delete admins[name]; // have that user removed from the admin group

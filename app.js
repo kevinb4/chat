@@ -87,7 +87,6 @@ io.on('connection', function (socket) {
 	socket.on('disconnect', function () {
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid(),
 			message = { id: getID, time: now, user: serverLeaveMsg, message: socket.username + ' has left' };
 
@@ -198,6 +197,8 @@ io.on('connection', function (socket) {
 							commands.adminUnban(msg, socket, users);
 						} else if (msg.substr(0, 6) === '/mute ') {
 							commands.adminMute(msg, socket, users);
+						} else if (msg.substr(0, 6) === '/name ') {
+							commands.adminUsername(msg, socket, io, users, admins);
 						} else {
 							functions.adminMessage(msg, socket, io);
 						}
@@ -235,7 +236,6 @@ stdin.on('data', function (data) {
 	} else { // anything else that's entered is sent as a server message
 		var now = moment(),
 			time = now.format('LT'),
-			fulldate = now.format('LLLL'),
 			getID = functions.guid(),
 			message = { id: getID, time: now, user: serverMsg, message: input };
 

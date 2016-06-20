@@ -289,7 +289,7 @@ socket.on('settings', function(data) {
 });
 
 /**
- * Handles saving settings
+ * Adds the delete command to the message box
  * @param {data}
  */
 socket.on('del msg id', function(id) {

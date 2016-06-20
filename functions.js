@@ -111,15 +111,16 @@ exports.login = function (data, callback, socket, io, admins, users) {
 							} else {
 								var now = moment(),
 									time = now.format('LT'),
-									fulldate = now.format('LLLL'),
 									getID = functions.guid(),
 									idSpan = '<span id="' + getID + '">',
 									message = { id: getID, idSpan: idSpan, time: now, user: serverMsg, message: dbUsername + ' has joined' };
+
 								socket.username = dbUsername;
 								users[socket.username] = socket;
-								if (dbisAdmin === true) {
+
+								if (dbisAdmin === true)
 									admins[socket.username]++;
-								}
+
 								functions.updateNicknames(io, users, admins);
 								console.log(time + cmdServerMsg + 'User Joined: ' + socket.username);
 								users[socket.username].emit('settings', dbOptSound);
@@ -192,9 +193,11 @@ exports.message = function (msg, socket, io, users) {
 					saveMsg = new chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
 				} else {
 					var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
+
 					if (htmlRemoval.indexOf('http') >= 0) { // check to see if there's a link
 						htmlRemoval = functions.getURL(htmlRemoval);
 					}
+
 					var userName = '<b>' + socket.username + '</b>: ',
 						message = { id: getID, time: now, user: userName, message: htmlRemoval },
 						rawMessage = { id: getID, time: now, user: userName, message: msg };
@@ -224,9 +227,11 @@ exports.adminMessage = function (msg, socket, io) {
 	if (linkMsg.indexOf('http') >= 0) { // check to see if there's a link
 		linkMsg = functions.getURL(linkMsg);
 	}
+
 	var userName = '<b><font color="#2471FF">[Admin] ' + socket.username + '</font></b>: ',
 		message = { id: getID, time: now, user: userName, message: linkMsg },
 		rawMessage = { id: getID, time: now, user: userName, message: msg };
+
 	io.emit('chat message', message);
 	console.log(time + (' [Admin] ').blue.bold + socket.username + ': ' + msg);
 	saveMsg = new chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
@@ -294,8 +299,8 @@ exports.updateNicknames = function (io, users, admins) {
 		} else {
 			aNames.push('<b><font color="#2471FF">' + usersToArray[i] + '</font></b><br/>');
 		}
-
 	}
+
 	aNames.sort();
 	uNames.sort();
 	allUsers = aNames.concat(uNames);
