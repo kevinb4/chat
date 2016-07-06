@@ -14,22 +14,22 @@ var functions = require('./functions.js'),
 	cmdErrorMsg = ' [Error] '.red.bold,
 	saveMsg,
 	schema = mongoose.Schema({
-	msg: Array,
-	txtID: String,
-	rawMsg: Array,
-	deleted: Boolean,
-	username: String,
-	date: { type: Date, default: Date.now }
-}),
+		msg: Array,
+		txtID: String,
+		rawMsg: Array,
+		deleted: Boolean,
+		username: String,
+		date: { type: Date, default: Date.now }
+	}),
 	userschema = mongoose.Schema({
-	username: String,
-	password: String,
-	isAdmin: Boolean,
-	mute: String,
-	ban: Boolean,
-	banReason: String,
-	optSound: Boolean
-});
+		username: String,
+		password: String,
+		isAdmin: Boolean,
+		mute: String,
+		ban: Boolean,
+		banReason: String,
+		optSound: Boolean
+	});
 
 module.exports = {
 
@@ -155,7 +155,7 @@ module.exports = {
 				reason = command.substring(index + 1), // Set the reason
 				regex = new RegExp(['^', name, '$'].join(''), 'i'), // Case insensitive search
 				userCheck = userdb.find({ username: regex }); // Check to make sure the user exists
-			userCheck.sort().limit(1).exec(function(errormsg, result) {
+			userCheck.sort().limit(1).exec(function (errormsg, result) {
 				if (errormsg) {
 					console.log(time + cmdErrorMsg + errormsg);
 				} else {
@@ -163,13 +163,13 @@ module.exports = {
 						if (result[0].ban === true) {
 							users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: '<b>' + name + ' is already banned' });
 						} else {
-							userdb.update({ username: name }, { ban: true, banReason: reason }, function(err, raw) { if (err) return console.log(err)});
+							userdb.update({ username: name }, { ban: true, banReason: reason }, function (err, raw) { if (err) return console.log(err) });
 							if (name in users)
 								users[name].disconnect();
 							var msg = { id: getID, time: now, user: serverMsg, message: 'User <b>' + name + '</b> has been banned by <b>' + socket.username + '</b> for <i>' + reason + '</i>' }
 							console.log(time + cmdServerMsg + '"' + name + '" has been banned by "' + socket.username + '" for "' + reason + '"');
 							io.emit('chat message', msg);
-							saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+							saveMsg = new chat({ txtID: getID, msg: msg, username: '[Server]' });
 							saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 						}
 					} else {
@@ -196,7 +196,7 @@ module.exports = {
 			regex = new RegExp(['^', name, '$'].join(''), 'i'), // Case insensitive search
 			userCheck = userdb.find({ username: regex });
 
-		userCheck.sort().limit(1).exec(function(errormsg, result) {
+		userCheck.sort().limit(1).exec(function (errormsg, result) {
 			if (errormsg) {
 				console.log(time + cmdErrorMsg + errormsg);
 			} else {
@@ -204,7 +204,7 @@ module.exports = {
 					if (result[0].ban === false) {
 						users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: '<b>' + name + '</b> is not banned' });
 					} else {
-						userdb.update({ username: name }, { ban: false, banReason: '' }, function(err, raw) { if (err) return console.log(err)});
+						userdb.update({ username: name }, { ban: false, banReason: '' }, function (err, raw) { if (err) return console.log(err) });
 						console.log(time + cmdServerMsg + '"' + name + '" has been unbanned by "' + socket.username + '"');
 						users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'You have unbanned <b>' + name + '</b>' });
 					}
@@ -232,14 +232,14 @@ module.exports = {
 			name2 = command[2],
 			regex = new RegExp(['^', name1, '$'].join(''), 'i'), // case insensitive search
 			userCheck = userdb.find({ username: regex });
-		
+
 		if (name2 == null) { // admin is changing their own name
-			userCheck.sort().limit(1).exec(function(errormsg, result) {
+			userCheck.sort().limit(1).exec(function (errormsg, result) {
 				if (errormsg) {
 					console.log(time + cmdErrorMsg + errormsg);
 				} else {
 					if (result.length != 1) {
-						userdb.update({ username: socket.username }, { username: name1 }, function(err, raw) { 
+						userdb.update({ username: socket.username }, { username: name1 }, function (err, raw) {
 							if (err) {
 								return console.log(err);
 							} else {
@@ -247,13 +247,13 @@ module.exports = {
 								users[name1] = socket;
 								delete admins[socket.username];
 								admins[name1]++;
-								
+
 								functions.updateNicknames(io, users, admins); // reload the userlist
 								var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + socket.username + '</b> has changed their name to <b>' + name1 + '</b>' }
 								console.log(time + cmdServerMsg + '"' + socket.username + '" has changed their name to "' + name1 + '"');
 								socket.username = name1;
 								io.emit('chat message', msg);
-								saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+								saveMsg = new chat({ txtID: getID, msg: msg, username: '[Server]' });
 								saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 							}
 						});
@@ -263,7 +263,7 @@ module.exports = {
 				}
 			});
 		} else { // admin is changing someone else's name
-			userCheck.sort().limit(1).exec(function(errormsg, result) {
+			userCheck.sort().limit(1).exec(function (errormsg, result) {
 				if (errormsg) {
 					console.log(time + cmdErrorMsg + errormsg);
 				} else {
@@ -272,12 +272,12 @@ module.exports = {
 							newUserCheck = userdb.find({ username: newUser }),
 							isAdmin = result[0].isAdmin;
 
-						newUserCheck.sort().limit(1).exec(function(errormsg, result) {
+						newUserCheck.sort().limit(1).exec(function (errormsg, result) {
 							if (errormsg) {
 								console.log(time + cmdErrorMsg + errormsg);
 							} else {
 								if (result.length != 1) { // make sure the new username doesn't exist
-									userdb.update({ username: name1 }, { username: name2 }, function(err, raw) { 
+									userdb.update({ username: name1 }, { username: name2 }, function (err, raw) {
 										if (err) {
 											return console.log(err);
 										} else {
@@ -297,7 +297,7 @@ module.exports = {
 											var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + socket.username + '</b> has changed <b>' + name1 + '</b> name to <b>' + name2 + '</b>' }
 											console.log(time + cmdServerMsg + '"' + socket.username + '" has changed "' + name1 + '" name to "' + name2 + '"');
 											io.emit('chat message', msg);
-											saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+											saveMsg = new chat({ txtID: getID, msg: msg, username: '[Server]' });
 											saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 										}
 									});
@@ -329,10 +329,10 @@ module.exports = {
 		messageID = messageID.substring(8);
 		var query = chat.find({ txtID: messageID });
 
-		query.sort().limit(1).exec(function(errormsg, msg) { // Make sure the message exists
+		query.sort().limit(1).exec(function (errormsg, msg) { // Make sure the message exists
 			if (errormsg) console.log(time + cmdErrorMsg + errormsg);
 			if (msg.length == 1) {
-				chat.collection.remove( { txtID: messageID }, 1 ); // Find the ID and delete the entry
+				chat.collection.remove({ txtID: messageID }, 1); // Find the ID and delete the entry
 				io.emit('delete message', messageID);
 
 				try {
@@ -374,12 +374,12 @@ module.exports = {
 		}
 
 		if (muteLength.length >= 2) {
-			userCheck.sort().limit(1).exec(function(errormsg, result) {
+			userCheck.sort().limit(1).exec(function (errormsg, result) {
 				if (errormsg) {
 					console.log(time + cmdErrorMsg + errormsg);
 				} else {
 					if (result.length == 1) {
-						for(var i = 0; i < muteLength.length; i++) {
+						for (var i = 0; i < muteLength.length; i++) {
 							if (muteLength[i] === 'd') {
 								days = i;
 								if (days != 0) {
@@ -389,7 +389,7 @@ module.exports = {
 								i = muteLength.length; // just in case there's more than 1 d
 							}
 						}
-						for(var i = 0; i < muteLength.length; i++) {
+						for (var i = 0; i < muteLength.length; i++) {
 							if (muteLength[i] === 'h') {
 								hours = i;
 								if (hours != 0) {
@@ -399,7 +399,7 @@ module.exports = {
 								i = muteLength.length; // just in case there's more than 1 h
 							}
 						}
-						for(var i = 0; i < muteLength.length; i++) {
+						for (var i = 0; i < muteLength.length; i++) {
 							if (muteLength[i] === 'm') {
 								minutes = i;
 								if (minutes != 0) {
@@ -421,7 +421,7 @@ module.exports = {
 						if (modTime == now) {
 							users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'The command was not entered correctly, you must enter the time in order (days -> hours -> minutes)' });
 						} else {
-							userdb.update({ username: name }, { $set: { mute: modTime.format('YYYY-MM-DD HH:mm') }}, function(err, raw) { 
+							userdb.update({ username: name }, { $set: { mute: modTime.format('YYYY-MM-DD HH:mm') } }, function (err, raw) {
 								if (err) { // make sure the db was updated successfully
 									console.log(time + cmdErrorMsg + err)
 									users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'There has been an error saving to the database - error description: <i>' + err + '</i>' });
@@ -458,7 +458,7 @@ module.exports = {
 			console.log(time + cmdServerMsg + 'User "' + input + '" has been kicked');
 			var msg = { id: getID, time: now, user: serverMsg, message: 'User <b>' + input + '</b> has been kicked from the chat' };
 			io.emit('chat message', msg);
-			saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+			saveMsg = new chat({ txtID: getID, msg: msg, username: '[Server]' });
 			users[input].disconnect();
 		} else {
 			console.log(time + cmdErrorMsg + 'User "' + input + '" does not exist');
@@ -484,7 +484,7 @@ module.exports = {
 				reason = input.substring(index + 1), // set the reason
 				regex = new RegExp(['^', name, '$'].join(''), 'i'), // case insensitive search
 				userCheck = userdb.find({ username: regex });
-			userCheck.sort().limit(1).exec(function(errormsg, result) {
+			userCheck.sort().limit(1).exec(function (errormsg, result) {
 				if (errormsg) {
 					console.log(time + cmdErrorMsg + errormsg);
 				} else {
@@ -492,7 +492,7 @@ module.exports = {
 						if (result[0].ban === true) {
 							console.log(time + cmdServerMsg + '"' + name + '" is already banned');
 						} else {
-							userdb.update({ username: name }, { ban: true, banReason: reason }, function(err, raw) { if (err) return console.log(err)});
+							userdb.update({ username: name }, { ban: true, banReason: reason }, function (err, raw) { if (err) return console.log(err) });
 
 							if (name in users)
 								users[name].disconnect();
@@ -500,7 +500,7 @@ module.exports = {
 							console.log(time + cmdServerMsg + '"' + name + '" has been banned');
 							var msg = { id: getID, time: now, user: serverMsg, message: 'User <b>' + name + '</b> has been banned for <i>' + reason + '</i>' };
 							io.emit('chat message', msg);
-							saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+							saveMsg = new chat({ txtID: getID, msg: msg, username: '[Server]' });
 							saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 						}
 					} else {
@@ -523,15 +523,15 @@ module.exports = {
 			regex = new RegExp(['^', name, '$'].join(''), 'i'), // case insensitive search
 			userCheck = userdb.find({ username: regex });
 
-		userCheck.sort().limit(1).exec(function(errormsg, result) {
-			if (errormsg) { 
+		userCheck.sort().limit(1).exec(function (errormsg, result) {
+			if (errormsg) {
 				console.log(time + cmdErrorMsg + errormsg);
 			} else {
 				if (result.length == 1) {
 					if (result[0].ban === false) {
 						console.log(time + cmdErrorMsg + '"' + name + '" is not banned');
 					} else {
-						userdb.update({ username: name }, { ban: false, banReason: '' }, function(err, raw) { if (err) return console.log(err)});
+						userdb.update({ username: name }, { ban: false, banReason: '' }, function (err, raw) { if (err) return console.log(err) });
 						console.log(time + cmdServerMsg + '"' + name + '" has been unbanned');
 					}
 				} else {
@@ -561,8 +561,8 @@ module.exports = {
 				regex = new RegExp(["^", name, "$"].join(""), "i"), // case insensitive search
 				userCheck = userdb.find({ username: regex }); // check to make sure the user exists
 
-			userCheck.sort().limit(1).exec(function(errormsg, result) {
-				if (errormsg) { 
+			userCheck.sort().limit(1).exec(function (errormsg, result) {
+				if (errormsg) {
 					console.log(time + cmdErrorMsg + errormsg);
 				} else {
 					if (result.length == 1) { // If a match is found...
@@ -570,11 +570,11 @@ module.exports = {
 							if (result[0].isAdmin === true) {
 								console.log(time + cmdServerMsg + '"' + name + '" is already an admin');
 							} else {
-								userdb.update({ username: name }, { isAdmin: true }, function(err, raw) { if (err) return console.log(err)});
+								userdb.update({ username: name }, { isAdmin: true }, function (err, raw) { if (err) return console.log(err) });
 								console.log(time + cmdServerMsg + '"' + name + '" rank has been changed to admin');
 								var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + name + '</b> is now an Admin' };
 								io.emit('chat message', msg);
-								saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+								saveMsg = new chat({ txtID: getID, msg: msg, username: '[Server]' });
 								saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 
 								if (name in users) // If the user is online
@@ -586,11 +586,11 @@ module.exports = {
 							if (result[0].isAdmin === false) {
 								console.log(time + cmdServerMsg + '"' + name + '" is not an admin');
 							} else {
-								userdb.update({ username: name }, { isAdmin: false }, function(err, raw) { if (err) return console.log(err)});
+								userdb.update({ username: name }, { isAdmin: false }, function (err, raw) { if (err) return console.log(err) });
 								console.log(time + cmdServerMsg + '"' + name + '" has been removed from the admin group');
 								var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + name + '</b> has been demoted to a user' };
 								io.emit('chat message', msg);
-								saveMsg = new chat({ txtID: getID, msg: msg , username: '[Server]' });
+								saveMsg = new chat({ txtID: getID, msg: msg, username: '[Server]' });
 								saveMsg.save(function (errormsg) { if (errormsg) console.log(cmdErrorMsg + errormsg); });
 
 								if (name in admins) // if the user is online

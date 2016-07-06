@@ -50,9 +50,9 @@ This isn't required, but I thought I would leave this here. It's very useful for
 - [x] Add "edit previous message" feature
 - [x] Add an options menu
 - [x] Add function comments
+- [x] Add formatting (bolding and italicizing)
 - [ ] Add a command to delete messages with specific text
 - [ ] Add status (user idle, user is typing..., etc)
-- [ ] Add formatting
 - [ ] Write a client in VB.net
 - [ ] Write an andriod app
 

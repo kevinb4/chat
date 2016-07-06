@@ -36,15 +36,15 @@ var schema = mongoose.Schema({
 	username: String,
 	date: { type: Date, default: Date.now }
 }),
-	userschema = mongoose.Schema({
-		username: String,
-		password: String,
-		isAdmin: Boolean,
-		mute: String,
-		ban: Boolean,
-		banReason: String,
-		optSound: Boolean
-	});
+userschema = mongoose.Schema({
+	username: String,
+	password: String,
+	isAdmin: Boolean,
+	mute: String,
+	ban: Boolean,
+	banReason: String,
+	optSound: Boolean
+});
 
 var chat = mongoose.model('message', schema),
 	userdb = mongoose.model('userdb', userschema);
@@ -168,7 +168,6 @@ io.on('connection', function (socket) {
 	socket.on('delete message', function (messageID) {
 		if (socket.username in admins) {
 			io.emit('del msg id', messageID);
-			//commands.adminDelete(messageID, socket, io, users);
 		}
 	});
 
