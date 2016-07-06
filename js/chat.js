@@ -26,7 +26,8 @@ var socket = io(),
 	btnOptions = $('#btnOptions'),
 	btnSave = $('#btnSave'),
 	optionslist = $('#options_list'),
-	isEdit = false;
+	isEdit = false,
+	audio = new Audio('mp3/alert.mp3');
 
 /**
  * Handles logging in
@@ -98,15 +99,6 @@ function loadMessages(msgs) {
 window.onfocus = function() {
 	document.title = 'ChatProject';
 }
-
-/**
- * Plays a sound (for notifications)
- */
-$.extend({
-	playSound: function(){
-		return $('<embed src="' + arguments[0] + '.mp3" hidden="true" autostart="true" loop="false" height="0" width="0" class="playSound">' + '<audio autoplay="autoplay" style="display:none;" controls="controls"><source src="' + arguments[0] + '.mp3" /><source src="' + arguments[0] + '.ogg" /></audio>').appendTo('body');
-	}
-});
 
 /**
  * Sends the id of the text to the server
@@ -273,7 +265,7 @@ socket.on('chat message', function (msg) {
 			document.title = '[!] ChatProject';
 			var checkbox1 = document.getElementById('checkbox1');
 			if (checkbox1.checked)
-				$.playSound('mp3/alert');
+				audio.play();
 		}
 	}
 });
@@ -294,6 +286,7 @@ socket.on('settings', function(data) {
  */
 socket.on('del msg id', function(id) {
 	document.getElementById('reply').value = '/delete ' + id;
+	reply.focus();
 });
 
 /**
