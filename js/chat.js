@@ -21,7 +21,6 @@ var socket = io(),
 	textarea = $('#chat-textarea'),
 	send = $('#send'),
 	users = $('#online-users'),
-	progBar = $('#progressbar'),
 	options = $('#options'),
 	btnOptions = $('#btnOptions'),
 	btnSave = $('#btnSave'),
@@ -87,7 +86,12 @@ function appendMessage(msg) {
 function loadMessages(msgs) {
 	for (var i = msgs.length - 1; i >= 0; i--) {
 		var localTime = moment(msgs[i].msg[0].time).format('LT'),
-			localDate = moment(msgs[i].msg[0].time).format('LLLL');
+			localDate = moment(msgs[i].msg[0].time).format('LLLL'),
+			localHours = moment(msgs[i].msg[0].time).hour();
+
+		if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22) {
+			localTime = "0" + localTime;
+		}
 
 		appendMessage('<span id="' + msgs[i].msg[0].id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].msg[0].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].msg[0].user + msgs[i].msg[0].message + '</font><br/>');
 	}
@@ -216,8 +220,12 @@ reply.keypress(function(e) { // Checks for keys being pressed
  */
 reply.keydown(function(e) {
 	switch(e.which) {
-		case 38:
+		case 38: // up arrow key
 			socket.emit('get prev msg');
+		break;
+
+		case 27: // esc key
+			isEdit = false;
 		break;
 
 		default: return;
@@ -255,7 +263,12 @@ var vis = (function(){
  */
 socket.on('chat message', function (msg) {
 	var localTime = moment(msg.time).format('LT'),
-		localDate = moment(msg.time).format('LLLL');
+		localDate = moment(msg.time).format('LLLL'),
+		localHours = moment(msg.time).hour();
+
+	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22) {
+		localTime = "0" + localTime;
+	}
 
 	appendMessage('<span id="' + msg.id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msg.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msg.user + msg.message + '</font><br/>');
 	if (chat.is(':visible')) {
