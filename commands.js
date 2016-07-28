@@ -223,7 +223,7 @@ module.exports = {
 	 * @param {users}
 	 * @param {admins}
 	 */
-	adminName: function (command, socket, io, users, admins) {
+	adminName: function (command, socket, io, users, admins, status) {
 		command = command.split(' ');
 		var now = moment(),
 			time = now.format('LT'),
@@ -248,7 +248,7 @@ module.exports = {
 								delete admins[socket.username];
 								admins[name1]++;
 
-								functions.updateNicknames(io, users, admins); // reload the userlist
+								functions.updateNicknames(io, users, admins, status); // reload the userlist
 								var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + socket.username + '</b> has changed their name to <b>' + name1 + '</b>' }
 								console.log(time + cmdServerMsg + '"' + socket.username + '" has changed their name to "' + name1 + '"');
 								socket.username = name1;
@@ -293,7 +293,7 @@ module.exports = {
 												admins[name2]++;
 											}
 
-											functions.updateNicknames(io, users, admins); // reload the userlist
+											functions.updateNicknames(io, users, admins, status); // reload the userlist
 											var msg = { id: getID, time: now, user: serverMsg, message: '<b>' + socket.username + '</b> has changed <b>' + name1 + '</b> name to <b>' + name2 + '</b>' }
 											console.log(time + cmdServerMsg + '"' + socket.username + '" has changed "' + name1 + '" name to "' + name2 + '"');
 											io.emit('chat message', msg);
@@ -426,7 +426,7 @@ module.exports = {
 									console.log(time + cmdErrorMsg + err)
 									users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'There has been an error saving to the database - error description: <i>' + err + '</i>' });
 								} else {
-									console.log(time + cmdServerMsg + '"' + name + '" has been muted by "' + socket.username + '" - expires ' + modTime.fromNow());
+									console.log(time + cmdServerMsg + '"' + name + '" has been muted by "' + socket.username + '" - expires ' + modTime.fromNow() + ' @ ' + modTime.format('LT'));
 									users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: '<b>' + name + '</b> has been muted - expires <i>' + modTime.fromNow() + '</i>' });
 									if (name in users)
 										users[name].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'You have been muted by <b>' + socket.username + '</b> - expires <i>' + modTime.fromNow() + '</i>' });
@@ -548,7 +548,7 @@ module.exports = {
 	 * @param {users}
 	 * @param {admins}
 	 */
-	cmdAdmin: function (input, io, users, admins) {
+	cmdAdmin: function (input, io, users, admins, status) {
 		var now = moment(),
 			time = now.format('LT'),
 			getID = functions.guid();
@@ -580,7 +580,7 @@ module.exports = {
 								if (name in users) // If the user is online
 									admins[name]++; // have that user added to the admin group
 
-								functions.updateNicknames(io, users, admins); // reload the userlist
+								functions.updateNicknames(io, users, admins, status); // reload the userlist
 							}
 						} else if (trufal == 'false') { // if the user enters false
 							if (result[0].isAdmin === false) {
@@ -596,7 +596,7 @@ module.exports = {
 								if (name in admins) // if the user is online
 									delete admins[name]; // have that user removed from the admin group
 
-								functions.updateNicknames(io, users, admins); // reload the userlist
+								functions.updateNicknames(io, users, admins, status); // reload the userlist
 							}
 						} else {
 							console.log(time + cmdErrorMsg + 'You must enter true or false')

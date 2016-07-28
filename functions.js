@@ -85,7 +85,7 @@ exports.register = function (registerData, callback) {
  * @param {admins}
  * @param {users}
  */
-exports.login = function (data, callback, socket, io, admins, users) {
+exports.login = function (data, callback, socket, io, admins, users, idle) {
 	var loginUsername = data.username, loginPassword = data.password,
 		login,
 		regex = new RegExp(['^', loginUsername, '$'].join(''), 'i'); // Case insensitive search
@@ -122,7 +122,7 @@ exports.login = function (data, callback, socket, io, admins, users) {
 								if (dbisAdmin === true)
 									admins[socket.username]++;
 
-								functions.updateNicknames(io, users, admins);
+								functions.updateNicknames(io, users, admins, idle);
 								console.log(time + cmdServerMsg + 'User Joined: ' + socket.username);
 								users[socket.username].emit('settings', dbOptSound);
 								io.emit('chat message', message);
@@ -259,13 +259,14 @@ exports.message = function (msg, socket, io, users) {
 		if (errormsg) {
 			console.log(time + cmdErrorMsg + errormsg);
 		} else {
+			var muteTime;
 			try {
-				var muteTime = moment(result[0].mute, 'YYYY-MM-DD HH:mm');
+				muteTime = moment(result[0].mute, 'YYYY-MM-DD HH:mm');
 			} catch (err) {
-				var muteTime = moment(now, 'YYYY-MM-DD HH:mm');
+				muteTime = moment(now, 'YYYY-MM-DD HH:mm');
 			}
 			if (muteTime > now) {
-				users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'You are muted - expires ' + muteTime.fromNow() })
+				users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'You are muted - expires ' + muteTime.fromNow() });
 			} else {
 				var finalMsg = "";
 				if (msg.indexOf('<') == -1) { // check if the user is trying to use html
@@ -389,13 +390,28 @@ exports.getURL = function (text) {
 	return text.replace(link, '<a href="$1" target="_blank">$1</a>');
 }
 
+exports.getStatus = function (data) {
+	var txt = '';
+
+	switch (data) {
+		case 'idle':
+			txt = ' <font size="2"><i>(idle)</i></font><br/>';
+			break;
+
+		case 'typing':
+			txt = ' <font size="2"><i>(typing...)</i></font><br/>'
+			break;
+	}
+	return txt;
+}
+
 /**
  * Updates the userlist
  * @param {io}
  * @param {users}
  * @param {admins}
  */
-exports.updateNicknames = function (io, users, admins) {
+exports.updateNicknames = function (io, users, admins, status) {
 	var uNames = [],
 		aNames = [],
 		allUsers = [],
@@ -404,9 +420,15 @@ exports.updateNicknames = function (io, users, admins) {
 
 	for (var i = 0; i < usersToArray.length; i++) {
 		if (adminsToArray.indexOf(usersToArray[i]) == -1) {
-			uNames.push('<b>' + usersToArray[i] + '</b><br/>');
+			if (usersToArray[i] in status)
+				uNames.push('<b>' + usersToArray[i] + '</b>' + functions.getStatus(status[usersToArray[i]]));
+			else
+				uNames.push('<b>' + usersToArray[i] + '</b><br/>');
 		} else {
-			aNames.push('<b><font color="#2471FF">' + usersToArray[i] + '</font></b><br/>');
+			if (usersToArray[i] in status)
+				aNames.push('<b><font color="#2471FF">' + usersToArray[i] + '</font></b>' + functions.getStatus(status[usersToArray[i]]));
+			else
+				aNames.push('<b><font color="#2471FF">' + usersToArray[i] + '</font></b><br/>');
 		}
 	}
 

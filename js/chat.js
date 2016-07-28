@@ -25,6 +25,7 @@ var socket = io(),
 	btnOptions = $('#btnOptions'),
 	btnSave = $('#btnSave'),
 	optionslist = $('#options_list'),
+	checkbox1 = document.getElementById('checkbox1'),
 	isEdit = false,
 	audio = new Audio('mp3/alert.mp3');
 
@@ -32,7 +33,7 @@ var socket = io(),
  * Handles logging in
  */
 function login() {
-	var loginDetails = { username : txtUsername.val(), password : txtPassword.val() }
+	var loginDetails = { username: txtUsername.val(), password: txtPassword.val() }
 
 	socket.emit('user login', loginDetails, function (data) {
 		if (data == 'success') { // have the server check if the username is valid
@@ -51,6 +52,7 @@ function login() {
  * Handles sending messages
  */
 function sendMessage() {
+	socket.emit('rstatus');
 	if (isEdit === true) {
 		socket.emit('edit message', reply.val());
 		reply.val(''); // clear the reply box
@@ -98,13 +100,6 @@ function loadMessages(msgs) {
 }
 
 /**
- * Checks if the window is fucoused
- */
-window.onfocus = function() {
-	document.title = 'ChatProject';
-}
-
-/**
  * Sends the id of the text to the server
  * @param {object}
  */
@@ -116,24 +111,25 @@ function clickHandler(object) {
  * Checks weather the document has loaded
  * 	and hides forms
  */
-$(document).ready(function() {
+$(document).ready(function () {
 	chat.hide();
 	registerForm.hide();
 	options.hide();
 	btnOptions.hide();
+	ifvisible.setIdleDuration(5 * 60); // page will become idle after 5 minutes
 });
 
 /**
  * Handles the login button clicking
  */
-btnLogin.click(function() {
+btnLogin.click(function () {
 	login();
 });
 
 /**
  * Checks for the enter key being pressed
  */
-txtPassword.keypress(function(e) {
+loginForm.keypress(function (e) {
 	if (e.which == 13) {
 		login();
 	}
@@ -142,7 +138,7 @@ txtPassword.keypress(function(e) {
 /**
  * Handles clicking the register button
  */
-btnRegister.click(function() {
+btnRegister.click(function () {
 	loginForm.fadeOut('slow', function () {
 		registerForm.fadeIn('slow', function () { });
 	});
@@ -151,7 +147,7 @@ btnRegister.click(function() {
 /**
  * Handles clicking the submit button
  */
-btnSubmit.click(function() {
+btnSubmit.click(function () {
 	var passLen = regPassword.val();
 
 	if (!regPassword.val() == regpasswordConfirm.val()) {
@@ -176,7 +172,7 @@ btnSubmit.click(function() {
 /**
  * Handles clicking the options button
  */
-btnOptions.click(function() {
+btnOptions.click(function () {
 	chat.fadeOut('slow', function () {
 		options.fadeIn('slow', function () { });
 	});
@@ -185,9 +181,7 @@ btnOptions.click(function() {
 /**
  * Handles clicking the save button
  */
-btnSave.click(function() {
-	var checkbox1 = document.getElementById('checkbox1');
-
+btnSave.click(function () {
 	if (checkbox1.checked) {
 		optSound = true;
 	} else {
@@ -202,60 +196,86 @@ btnSave.click(function() {
 /**
  * Handles clicking the send button
  */
-send.click(function() {
+send.click(function () {
 	sendMessage();
 });
 
 /**
  * Checks for the enter key being pressed
  */
-reply.keypress(function(e) { // Checks for keys being pressed
+reply.keypress(function (e) { // Checks for keys being pressed
 	if (e.which == 13) { // Pressing Enter
 		sendMessage();
 	}
 });
 
 /**
- * Checks to see if the up arrow key was pressed
+ * Handles functions before a key is pressed
+ * For help on key codes:
+ * https://www.cambiaresearch.com/articles/15/javascript-char-codes-key-codes
  */
-reply.keydown(function(e) {
-	switch(e.which) {
-		case 38: // up arrow key
-			socket.emit('get prev msg');
-		break;
+reply.keydown(function (e) {
+	var replyText = document.getElementById('reply').value,
+		value = e.which;
 
-		case 27: // esc key
+	switch (true) {
+		case (value == 8): return; // backspace
+
+		case (value == 38): // up arrow key
+			if (replyText.length == 0)
+				socket.emit('get prev msg');
+			break;
+
+		case (value == 27): // esc key
 			isEdit = false;
-		break;
+			break;
+
+		case (value == 191): // '/' key
+			if (replyText.length <= 1) return;
+			break;
+
+		case (value == 32 || value == 173): // space and -
+		case (value >= 48 && value <= 90): // 0-9, a-z
+		case (value >= 96 && value <= 111): // numberpad 0-9, and multiply, add, subtract, divide
+		case (value >= 186 && value <= 192): // signs
+		case (value >= 219 && value <= 222): // more signs
+			if (replyText.length == 0)
+					socket.emit('typing');
+			break;
 
 		default: return;
 	}
-	e.preventDefault();
 });
 
 /**
- * Checks for window visibility
- *	(not perfect)
+ * Handles functions after a key is pressed
  */
-var vis = (function(){
-	var stateKey, eventKey, keys = {
-		hidden: 'visibilitychange',
-		webkitHidden: 'webkitvisibilitychange',
-		mozHidden: 'mozvisibilitychange',
-		msHidden: 'msvisibilitychange'
-	};
+reply.keyup(function (e) {
+	if (!this.value)
+		if (e.which == 8 || e.which == 17) // backspace or ctrl (for ctrl + z)
+			socket.emit('rstatus');
+});
 
-	for (stateKey in keys) {
-		if (stateKey in document) {
-			eventKey = keys[stateKey];
-			break;
-		}
-	}
-	return function(c) {
-		if (c) document.addEventListener(eventKey, c);
-		return !document[stateKey];
-	}
-})();
+/**
+ * Checks to see if the tab is focused
+ */
+ifvisible.on('focus', function () {
+	document.title = 'ChatProject';
+});
+
+/**
+ * Detects when the user goes idle
+ */
+ifvisible.on('idle', function () {
+	socket.emit('idle');
+});
+
+/**
+ * Detects when the user comes back from being idle
+ */
+ifvisible.on('wakeup', function () {
+	socket.emit('rstatus');
+});
 
 /**
  * Handles sending messages to the chat box
@@ -271,15 +291,12 @@ socket.on('chat message', function (msg) {
 	}
 
 	appendMessage('<span id="' + msg.id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msg.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msg.user + msg.message + '</font><br/>');
-	if (chat.is(':visible')) {
-		if(vis() == true) {
-			document.title = 'ChatProject';
-		} else {
+
+	if (!ifvisible.now()) {
+		if (chat.is(":visible")) // so we don't get this on the login screen
 			document.title = '[!] ChatProject';
-			var checkbox1 = document.getElementById('checkbox1');
-			if (checkbox1.checked)
-				audio.play();
-		}
+		if (checkbox1.checked)
+			audio.play();
 	}
 });
 
@@ -287,9 +304,7 @@ socket.on('chat message', function (msg) {
  * Handles saving settings
  * @param {data}
  */
-socket.on('settings', function(data) {
-	var checkbox1 = document.getElementById('checkbox1');
-
+socket.on('settings', function (data) {
 	checkbox1.checked = data;
 });
 
@@ -297,7 +312,7 @@ socket.on('settings', function(data) {
  * Adds the delete command to the message box
  * @param {data}
  */
-socket.on('del msg id', function(id) {
+socket.on('del msg id', function (id) {
 	document.getElementById('reply').value = '/delete ' + id;
 	reply.focus();
 });
@@ -317,18 +332,24 @@ socket.on('rcv prev msg', function (msg) {
  * Handles editing messages
  * @param {data}
  */
-socket.on('edited message', function(data) {
+socket.on('edited message', function (data) {
 	var localTime = moment(data.time).format('LT'),
-		localDate = moment(data.time).format('LLLL');
+		localDate = moment(data.time).format('LLLL'),
+		localHours = moment(data.time).hour();
+
+	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22) {
+		localTime = "0" + localTime;
+	}
 
 	document.getElementById(data.id).innerHTML = '<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + data.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + data.user + data.message + '<br/>';
+	chatbox.perfectScrollbar('update');
 });
 
 /**
  * Handles deleting messages
  * @param {data}
  */
-socket.on('delete message', function(data) {
+socket.on('delete message', function (data) {
 	var element = document.getElementById(data);
 	element.outerHTML = '';
 
@@ -360,7 +381,8 @@ socket.on('disconnect', function () {
 	textarea.html(''); // clear the chat
 	users.html(''); // clear the userlist
 	appendMessage('<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + moment().format('LLLL') + '" onclick="clickHandler(this);">' + moment().format('LT') + '</font> <font color="#5E97FF"><b>[Server]</b> You have been disconnected</font><br/>');
-	reply.fadeOut('slow', function() { }); // so the user can no longer type
+	reply.fadeOut('slow', function () { }); // so the user can no longer type
+	btnOptions.fadeOut('slow', function () { }); // so the user can't change options
 });
 
 /**
@@ -373,7 +395,7 @@ socket.on('load messages', function (msgs) {
 	if (txt.text().indexOf('You have been disconnected') !== -1) { // this way, the messages won't load in if the user is still on the div chat
 		chat.fadeOut('slow', function () {
 			loginForm.fadeIn('slow', function () { }); // fade into the chatbox
-			reply.fadeIn('slow', function() { }); // so the user can type again
+			reply.fadeIn('slow', function () { }); // so the user can type again
 			textarea.html(''); // clear the chat
 			loadMessages(msgs);
 		});

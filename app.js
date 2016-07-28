@@ -16,6 +16,7 @@ var express = require('express'),
 	cmdErrorMsg = ' [Error] '.red.bold,
 	users = {},
 	admins = {},
+	status = {},
 	saveMsg;
 
 console.log(moment().format('LT') + cmdServerMsg + 'listening @ localhost:' + port);
@@ -78,7 +79,7 @@ io.on('connection', function (socket) {
 	});
 
 	socket.on('user login', function (data, callback) {
-		functions.login(data, callback, socket, io, admins, users);
+		functions.login(data, callback, socket, io, admins, users, status);
 	});
 
 	/**
@@ -94,8 +95,10 @@ io.on('connection', function (socket) {
 			delete users[socket.username]; // remove user from list
 		if (socket.username in admins)
 			delete admins[socket.username]; // remove admin from list
+		if (socket.username in status)
+			delete status[socket.username]; // remove from status list
 
-		functions.updateNicknames(io, users, admins);
+		functions.updateNicknames(io, users, admins, status);
 		console.log(time + cmdServerMsg + 'User Left: ' + socket.username);
 		io.emit('chat message', message);
 		saveMsg = new chat({ txtID: getID, msg: message, username: '[Server]' });
@@ -167,7 +170,37 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('delete message', function (messageID) {
 		if (socket.username in admins) {
-			io.emit('del msg id', messageID);
+			users[socket.username].emit('del msg id', messageID);
+		}
+	});
+
+	/**
+	 * Handles idle status
+	 */
+	socket.on('idle', function () {
+		if (!(socket.username in status)) {
+			status[socket.username] = 'idle';
+			functions.updateNicknames(io, users, admins, status);
+		}
+	});
+
+	/**
+	 * Handles user typing status
+	 */
+	socket.on('typing', function () {
+		if (!(socket.username in status)) {
+			status[socket.username] = 'typing';
+			functions.updateNicknames(io, users, admins, status);
+		}
+	});
+
+	/**
+	 * Removes a user from status
+	 */
+	socket.on('rstatus', function () {
+		if (socket.username in status) {
+			delete status[socket.username];
+			functions.updateNicknames(io, users, admins, status);
 		}
 	});
 
@@ -197,7 +230,7 @@ io.on('connection', function (socket) {
 						} else if (msg.substr(0, 6) === '/mute ') {
 							commands.adminMute(msg, socket, users);
 						} else if (msg.substr(0, 6) === '/name ') {
-							commands.adminUsername(msg, socket, io, users, admins);
+							commands.adminName(msg, socket, io, users, admins, status);
 						} else {
 							functions.adminMessage(msg, socket, io);
 						}
@@ -231,7 +264,7 @@ stdin.on('data', function (data) {
 	} else if (input.substr(0, 6) === 'unban ') { // unban command
 		commands.cmdUnban(input);
 	} else if (input.substr(0, 6) === 'admin ') { // admin command
-		commands.cmdAdmin(input, io, users, admins);
+		commands.cmdAdmin(input, io, users, admins, status);
 	} else { // anything else that's entered is sent as a server message
 		var now = moment(),
 			time = now.format('LT'),
