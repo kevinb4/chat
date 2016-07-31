@@ -333,18 +333,18 @@ module.exports = {
 			if (errormsg) console.log(time + cmdErrorMsg + errormsg);
 			if (msg.length == 1) {
 				chat.collection.remove({ txtID: messageID }, 1); // Find the ID and delete the entry
-				io.emit('delete message', messageID);
 
 				try {
-					var delMsg = msg[0].rawMsg[0].message
+					var delMsg = msg[0].rawMsg[0].message;
 				} catch (err) {
-					var delMsg = msg[0].msg[0].message
+					var delMsg = msg[0].msg[0].message;
 				}
 
 				console.log(time + cmdServerMsg + '"' + socket.username + '" has deleted message "' + delMsg + '" made by "' + msg[0].username + '"');
 			} else {
-				users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'Message ID <b>' + messageID + '</b> was not found in the database (perhaps you\'re trying to delete a non-saved message?)' });
+				console.log(time + cmdServerMsg + '"' + socket.username + '" deleted a non-saved message (' + messageID + ')');
 			}
+			io.emit('delete message', messageID);
 		});
 	},
 
@@ -441,6 +441,29 @@ module.exports = {
 		} else {
 			users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'The command was not entered correctly - /mute user time (format: 2d3h4m)' });
 		}
+	},
+
+	/**
+	 * Executes Javascript for quick testing
+	 * @param {js}
+	 * @param {socket}
+	 * @param {io}
+	 * @param {users}
+	 */
+	adminJS: function (js, socket, io, users) {
+		var now = moment(),
+			time = now.format('LT'),
+			getID = functions.guid(),
+			msg;
+
+		try {
+			msg = eval(js.substr(4)); 
+		} catch (e) {
+			console.log(time + cmdServerMsg + 'Eval Error: ' + e.message)
+			msg = e.message;
+		}
+
+		users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: '<span style="color: #F0DB4F;">(JS)</span> ' + msg });
 	},
 
 	/**

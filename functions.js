@@ -113,8 +113,7 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 								var now = moment(),
 									time = now.format('LT'),
 									getID = functions.guid(),
-									idSpan = '<span id="' + getID + '">',
-									message = { id: getID, idSpan: idSpan, time: now, user: serverMsg, message: dbUsername + ' has joined' };
+									message = { id: getID, time: now, user: serverMsg, message: dbUsername + ' has joined' };
 
 								socket.username = dbUsername;
 								users[socket.username] = socket;
@@ -362,20 +361,20 @@ exports.editMessage = function (msg, socket, admins, rawMsg) {
 		if (linkMsg.indexOf('http') >= 0) { // check to see if there's a link
 			linkMsg = functions.getURL(linkMsg);
 		}
-		return { id: rawMsg.id, idSpan: rawMsg.idSpan, time: rawMsg.time, user: rawMsg.user, message: linkMsg };
+		return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: linkMsg };
 	} else {
 		if (msg.indexOf('<') == -1) { // check if the user is trying to use html
 			var noHTML = msg; // just so you don't get HTML from the link in the console
 			if (noHTML.indexOf('http') >= 0) { // check to see if there's a link
 				noHTML = functions.getURL(noHTML);
 			}
-			return { id: rawMsg.id, idSpan: rawMsg.idSpan, time: rawMsg.time, user: rawMsg.user, message: noHTML };
+			return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: noHTML };
 		} else {
 			var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
 			if (htmlRemoval.indexOf('http') >= 0) { // check to see if there's a link
 				htmlRemoval = functions.getURL(htmlRemoval);
 			}
-			return { id: rawMsg.id, idSpan: rawMsg.idSpan, time: rawMsg.time, user: rawMsg.user, message: htmlRemoval };
+			return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: htmlRemoval };
 		}
 	}
 }

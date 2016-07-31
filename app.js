@@ -157,7 +157,7 @@ io.on('connection', function (socket) {
 				chat.update({ date: msg[0].date }, { $set: { 'rawMsg.0.message': data, 'msg.0.message': fullMsg.message } }, function (err, raw) { if (err) return console.log(cmdErrorMsg + err) });
 				io.emit('edited message', fullMsg);
 			} else {
-				var msgData = { id: msg[0].rawMsg[0].id, idSpan: msg[0].rawMsg[0].idSpan, time: msg[0].rawMsg[0].time, user: msg[0].rawMsg[0].user, message: '<i>This message has been deleted</i>' }
+				var msgData = { id: msg[0].rawMsg[0].id, time: msg[0].rawMsg[0].time, user: msg[0].rawMsg[0].user, message: '<i>This message has been deleted</i>' }
 				chat.update({ date: msg[0].date }, { $set: { 'rawMsg.0.message': msgData.message, 'msg.0.message': msgData.message, deleted: true } }, function (err, raw) { if (err) return console.log(err) });
 				io.emit('edited message', msgData);
 			}
@@ -209,28 +209,30 @@ io.on('connection', function (socket) {
 	 * @param {msg}
 	 */
 	socket.on('chat message', function (msg) {
-		if (!msg == "") { // check to make sure a message was entered
+		if (!msg == '') { // check to make sure a message was entered
 			if (!socket.username == '') { // check to make sure the client has a username
-				if (msg.substr(0, 9) === '/commands') {
+				if (msg.indexOf('/commands') == 0) {
 					commands.commands(socket, admins, users);
-				} else if (msg.substr(0, 3) === '/w ') {
+				} else if (msg.indexOf('/w ') == 0) {
 					commands.whisper(msg, socket, users);
 				} else {
 					if (socket.username in admins) {
-						if (msg.substr(0, 11) === '/broadcast ' || msg.substr(0, 4) === '/bc ') {
+						if (msg.indexOf('/broadcast ') == 0 || msg.indexOf('/bc ') == 0) {
 							commands.adminBroadcast(msg, socket, io);
-						} else if (msg.substr(0, 6) === '/kick ') {
+						} else if (msg.indexOf('/kick ') == 0) {
 							commands.adminKick(msg, socket, io, users);
-						} else if (msg.substr(0, 5) === '/ban ') {
+						} else if (msg.indexOf('/ban ') == 0) {
 							commands.adminBan(msg, socket, io, users);
-						} else if (msg.substr(0, 8) === '/delete ') {
-							commands.adminDelete(msg, socket, io, users);
-						} else if (msg.substr(0, 7) === '/unban ') {
+						} else if (msg.indexOf('/unban ') == 0) {
 							commands.adminUnban(msg, socket, users);
-						} else if (msg.substr(0, 6) === '/mute ') {
-							commands.adminMute(msg, socket, users);
-						} else if (msg.substr(0, 6) === '/name ') {
+						} else if (msg.indexOf('/name ') == 0) {
 							commands.adminName(msg, socket, io, users, admins, status);
+						} else if (msg.indexOf('/delete ') == 0) {
+							commands.adminDelete(msg, socket, io, users);
+						} else if (msg.indexOf('/mute ') == 0) {
+							commands.adminMute(msg, socket, users);
+						} else if (msg.indexOf('/js ') == 0) {
+							commands.adminJS(msg, socket, io, users);							
 						} else {
 							functions.adminMessage(msg, socket, io);
 						}

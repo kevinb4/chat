@@ -355,10 +355,10 @@ socket.on('delete message', function (data) {
 
 	try {
 		delete element;
+		chatbox.perfectScrollbar('update');
 	} catch (err) {
 		console.log(err);
 	}
-	chatbox.perfectScrollbar('update');
 });
 
 /**
