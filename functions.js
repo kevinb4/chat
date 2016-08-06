@@ -7,29 +7,19 @@ var mongoose = require('mongoose'),
 	bcrypt = require('bcrypt-nodejs'),
 	functions = require('./functions.js'),
 	moment = require('moment'),
-	serverMsg = '<font color="#5E97FF"><b>[Server]</b> ',
-	cmdServerMsg = ' [Server] '.white.bold,
-	cmdErrorMsg = ' [Error] '.red.bold,
-	userdb = mongoose.model('userdb', userschema),
-	chat = mongoose.model('message', schema),
-	saveMsg,
-	schema = mongoose.Schema({
-		msg: Array,
-		txtID: String,
-		rawMsg: Array,
-		deleted: Boolean,
-		username: String,
-		date: { type: Date, default: Date.now }
-	}),
-	userschema = mongoose.Schema({
-		username: String,
-		password: String,
-		isAdmin: Boolean,
-		mute: String,
-		ban: Boolean,
-		banReason: String,
-		optSound: Boolean
-	});
+	schema = mongoose.Schema({ msg: Array, txtID: String, rawMsg: Array, deleted: Boolean, username: String, date: { type: Date, default: Date.now } }),
+	userschema = mongoose.Schema({ username: String, password: String, isAdmin: Boolean, mute: String, ban: Boolean, banReason: String, optSound: Boolean });
+
+const cmdType = {Error: 'Error', Normal: 'Normal', User: 'User', Admin: 'Admin'};
+
+exports.saveMsg;
+exports.serverMsg = '<font color="#5E97FF"><b>[Server]</b> ';
+exports.mongoose = require('mongoose');
+exports.bcrypt = require('bcrypt-nodejs');
+exports.moment = require('moment');
+exports.colors = require('colors');
+exports.chat = mongoose.model('message', schema);
+exports.userdb = mongoose.model('userdb', userschema);
 
 /**
  * Gets the info from the client and registers the user
@@ -40,11 +30,11 @@ exports.register = function (registerData, callback) {
 	var dataUsername = registerData.username, dataPassword = registerData.password,
 		saveUser,
 		user = /^[\w]{1,15}$/,
-		userCheck = userdb.find({ username: dataUsername }); // check to make sure the username doesn't already exist
+		userCheck = functions.userdb.find({ username: dataUsername }); // check to make sure the username doesn't already exist
 
-	userCheck.sort().limit(1).exec(function (errormsg, registerData) {
-		if (errormsg) {
-			console.log(moment().format('LT') + cmdErrorMsg + errormsg);
+	userCheck.sort().limit(1).exec(function (err, registerData) {
+		if (err) {
+			functions.cmdMsg(cmdType.Error, err);
 			callback('An error has occoured, please contact an administrator');
 		} else {
 			if (registerData.length == 1) {
@@ -55,17 +45,17 @@ exports.register = function (registerData, callback) {
 				bcrypt.genSalt(10, function (err, salt) {
 					bcrypt.hash(dataPassword, salt, null, function (errormsg, hash) {
 						/*if (error) { // it seems to always return 'undefined', even though the hash was created successfully
-							console.log(cmdErrorMsg + errormsg + ' ..at hash! ' + hash);
+							functions.cmdMsg(cmdType.Error, ' ..at hash! ' + hash);
 							callback('An error has occoured, please contact an administrator');	
 						} else {*/
-							saveUser = new userdb({ username: dataUsername, password: hash, isAdmin: false, ban: false, banReason: '', optSound: true, optMessageId: false });
-							saveUser.save(function (errormsg) {
-								if (errormsg) {
-									console.log(moment().format('LT') + cmdErrorMsg + errormsg);
+							saveUser = new functions.userdb({ username: dataUsername, password: hash, isAdmin: false, ban: false, banReason: '', optSound: true, optMessageId: false });
+							saveUser.save(function (err) {
+								if (err) {
+									functions.cmdMsg(cmdType.Error, err);
 									callback('An Error has occoured, please contact an administrator');
 								} else {
 									callback('success');
-									console.log(moment().format('LT') + cmdServerMsg + 'New user: ' + dataUsername);
+									functions.cmdMsg(cmdType.Server, 'New user: ' + dataUsername);
 								}
 							});
 					//	}
@@ -89,19 +79,20 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 	var loginUsername = data.username, loginPassword = data.password,
 		login,
 		regex = new RegExp(['^', loginUsername, '$'].join(''), 'i'); // Case insensitive search
-	userCheck = userdb.find({ username: regex });
+		userCheck = functions.userdb.find({ username: regex });
 
-	userCheck.sort().limit(1).exec(function (errormsg, result) {
-		if (errormsg) {
-			console.log(moment().format('LT') + cmdErrorMsg + errormsg);
+	userCheck.sort().limit(1).exec(function (err, result) {
+		if (err) {
+			functions.cmdMsg(cmdType.Error, err);
 			callback('An error has occoured, please contact an administrator');
 		} else {
 			if (result.length == 1) {
 				var dbUsername = result[0].username, dbPassword = result[0].password, dbisAdmin = result[0].isAdmin, dbBan = result[0].ban, dbbanReason = result[0].banReason,
 					dbOptSound = result[0].optSound;
+
 				bcrypt.compare(loginPassword, dbPassword, function (errormsg, res) {
-					if (errormsg) {
-						console.log(moment().format('LT') + cmdErrorMsg + errormsg);
+					if (err) {
+						functions.cmdMsg(cmdType.Error, err);
 						callback('An error has occoured, please contact an administrator');
 					} else {
 						if (res) {
@@ -111,9 +102,8 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 								callback('You are already logged in');
 							} else {
 								var now = moment(),
-									time = now.format('LT'),
 									getID = functions.guid(),
-									message = { id: getID, time: now, user: serverMsg, message: dbUsername + ' has joined' };
+									message = { id: getID, time: now, user: functions.serverMsg, message: dbUsername + ' has joined' };
 
 								socket.username = dbUsername;
 								users[socket.username] = socket;
@@ -122,11 +112,11 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 									admins[socket.username]++;
 
 								functions.updateNicknames(io, users, admins, idle);
-								console.log(time + cmdServerMsg + 'User Joined: ' + socket.username);
+								functions.cmdMsg(cmdType.Normal, 'User Joined: ' + socket.username);
 								users[socket.username].emit('settings', dbOptSound);
 								io.emit('chat message', message);
-								saveMsg = new chat({ txtID: getID, msg: message, username: '[Server]' });
-								saveMsg.save(function (errormsg) { if (errormsg) console.log(time + cmdErrorMsg + errormsg); });
+								functions.saveMsg = new functions.chat({ txtID: getID, msg: message, username: '[Server]', deleted: false });
+								functions.saveMsg.save(function (errormsg) { if (err) functions.cmdMsg(cmdType.Error, err); });
 								callback('success');
 							}
 						} else {
@@ -175,12 +165,12 @@ exports.bold = function (msg, count) {
 	var result = (count % 2 == 0) ? 'even' : 'odd',
 		indices = [];
 
-	for (var i = 0; i < msg.length; i++) {
-		if (msg[i] === '*') indices.push(i);
-	}
-	if (result == 'odd') {
+	for (var i = 0; i < msg.length; i++)
+		if (msg[i] === '*')
+			indices.push(i);
+
+	if (result == 'odd')
 		count -= 1;
-	}
 
 	var track = (count / 2) - 1;
 	for (var i = (count / 2) - 1; i > -1; i--) {
@@ -192,13 +182,14 @@ exports.bold = function (msg, count) {
 		msg = functions.insert(msg, ast1, '<b>');
 		track -= 1;
 	}
+
 	if (result == 'even') {
 		msg = msg.replace(/\*/g, ''); // remove all *
 	} else {
-		for (var i = (count / 2) - 1; i > -1; i--) {
+		for (var i = (count / 2) - 1; i > -1; i--)
 			msg = msg.replace('*', '').replace('*', ''); // remove all but the one lone *
-		}
 	}
+
 	return msg;
 }
 
@@ -212,12 +203,12 @@ exports.italicize = function (msg, count) {
 	var result = (count % 2 == 0) ? 'even' : 'odd',
 		indices = [];
 
-	for (var i = 0; i < msg.length; i++) {
-		if (msg[i] === '_') indices.push(i);
-	}
-	if (result == 'odd') {
+	for (var i = 0; i < msg.length; i++)
+		if (msg[i] === '_')
+			indices.push(i);
+
+	if (result == 'odd')
 		count -= 1;
-	}
 
 	var track = (count / 2) - 1;
 	for (var i = (count / 2) - 1; i > -1; i--) {
@@ -229,13 +220,14 @@ exports.italicize = function (msg, count) {
 		msg = functions.insert(msg, ital1, '<i>');
 		track -= 1;
 	}
+
 	if (result == 'even') {
 		msg = msg.replace(/\_/g, ''); // remove all _
 	} else {
-		for (var i = (count / 2) - 1; i > -1; i--) {
+		for (var i = (count / 2) - 1; i > -1; i--)
 			msg = msg.replace('_', '').replace('_', ''); // remove all but the one lone _
-		}
 	}
+
 	return msg;
 }
 
@@ -248,15 +240,15 @@ exports.italicize = function (msg, count) {
  */
 exports.message = function (msg, socket, io, users) {
 	var now = moment(),
-		time = now.format('LT'),
 		getID = functions.guid(),
 		message = {},
+		rawMessage = {},
 		regex = new RegExp(['^', socket.username, '$'].join(''), 'i'),
-		userCheck = userdb.find({ username: regex }); // check to make sure the user exists
+		userCheck = functions.userdb.find({ username: regex }); // check to make sure the user exists
 
-	userCheck.sort().limit(1).exec(function (errormsg, result) {
-		if (errormsg) {
-			console.log(time + cmdErrorMsg + errormsg);
+	userCheck.sort().limit(1).exec(function (err, result) {
+		if (err) {
+			functions.cmdMsg(cmdType.Error, err);
 		} else {
 			var muteTime;
 			try {
@@ -265,47 +257,41 @@ exports.message = function (msg, socket, io, users) {
 				muteTime = moment(now, 'YYYY-MM-DD HH:mm');
 			}
 			if (muteTime > now) {
-				users[socket.username].emit('chat message', { id: getID, time: now, user: serverMsg, message: 'You are muted - expires ' + muteTime.fromNow() });
+				users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'You are muted - expires ' + muteTime.fromNow() });
 			} else {
-				var finalMsg = "";
-				if (msg.indexOf('<') == -1) { // check if the user is trying to use html
-					var noHTML = msg; // just so you don't get HTML from the link in the console
-					if (noHTML.indexOf('http') >= 0) { // check to see if there's a link
-						noHTML = functions.getURL(noHTML);
-					}
-					var userName = '<b>' + socket.username + '</b>: ',
-						rawMessage = { id: getID, time: now, user: userName, message: msg };
+				var userName = '<b>' + socket.username + '</b>: ',
+					finalMsg;
 
-					finalMsg = msg;
-					console.log(time + (' [User] ').gray.bold + socket.username + ': ' + msg);
+				if (msg.indexOf('<') == -1) { // check if the user is trying to use html
+					var urlMsg = msg; // just so you don't get HTML from the link in the console
+					
+					if (urlMsg.indexOf('http') >= 0) // check to see if there's a link
+						urlMsg = functions.getURL(noHTML);
+
+					finalMsg = urlMsg;
 				} else {
 					var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
 
-					if (htmlRemoval.indexOf('http') >= 0) { // check to see if there's a link
+					if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
 						htmlRemoval = functions.getURL(htmlRemoval);
-					}
-
-					var userName = '<b>' + socket.username + '</b>: ',
-						rawMessage = { id: getID, time: now, user: userName, message: msg };
 
 					finalMsg = htmlRemoval;
-					console.log(time + (' [User] ').gray.bold + socket.username + ': ' + msg);
 				}
 
 				var astNum = (msg.match(/\*/g) || []).length,
 					italNum = (msg.match(/\_/g) || []).length;
 
-				if (astNum > 1) {
+				if (astNum > 1)
 					finalMsg = functions.bold(finalMsg, astNum);
-				}
-				if (italNum > 1) {
+				if (italNum > 1)
 					finalMsg = functions.italicize(finalMsg, italNum);
-				}
 
+				rawMessage = { id: getID, time: now, user: userName, message: msg };
 				message = { id: getID, time: now, user: userName, message: finalMsg };
+				functions.saveMsg = new functions.chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
+				functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+				functions.cmdMsg(cmdType.User, socket.username + ': ' + msg);
 				io.emit('chat message', message);
-				saveMsg = new chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
-				saveMsg.save(function (errormsg) { if (errormsg) console.log(time + cmdErrorMsg + errormsg); });
 			}
 		}
 	});
@@ -319,32 +305,28 @@ exports.message = function (msg, socket, io, users) {
  */
 exports.adminMessage = function (msg, socket, io) {
 	var now = moment(),
-		time = now.format('LT'),
 		getID = functions.guid(),
 		linkMsg = msg; // just so you don't get HTML from the link in the console
 
-	if (linkMsg.indexOf('http') >= 0) { // check to see if there's a link
+	if (linkMsg.indexOf('http') >= 0)// check to see if there's a link
 		linkMsg = functions.getURL(linkMsg);
-	}
 
 	var astNum = (linkMsg.match(/\*/g) || []).length,
 		italNum = (linkMsg.match(/\_/g) || []).length;
 
-	if (astNum > 1) {
+	if (astNum > 1)
 		linkMsg = functions.bold(linkMsg, astNum);
-	}
-	if (italNum > 1) {
+	if (italNum > 1)
 		linkMsg = functions.italicize(linkMsg, italNum);
-	}
 
 	var userName = '<b><font color="#2471FF">[Admin] ' + socket.username + '</font></b>: ',
 		message = { id: getID, time: now, user: userName, message: linkMsg },
 		rawMessage = { id: getID, time: now, user: userName, message: msg };
 
 	io.emit('chat message', message);
-	console.log(time + (' [Admin] ').blue.bold + socket.username + ': ' + msg);
-	saveMsg = new chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
-	saveMsg.save(function (errormsg) { if (errormsg) console.log(time + cmdErrorMsg + errormsg); });
+	functions.cmdMsg(cmdType.Admin, socket.username + ': ' + msg);
+	functions.saveMsg = new functions.chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
+	functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
 }
 
 /**
@@ -358,22 +340,23 @@ exports.editMessage = function (msg, socket, admins, rawMsg) {
 	if (socket.username in admins) {
 		var linkMsg = msg; // just so you don't get HTML from the link in the console
 
-		if (linkMsg.indexOf('http') >= 0) { // check to see if there's a link
+		if (linkMsg.indexOf('http') >= 0) // check to see if there's a link
 			linkMsg = functions.getURL(linkMsg);
-		}
+
 		return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: linkMsg };
 	} else {
 		if (msg.indexOf('<') == -1) { // check if the user is trying to use html
 			var noHTML = msg; // just so you don't get HTML from the link in the console
-			if (noHTML.indexOf('http') >= 0) { // check to see if there's a link
+			if (noHTML.indexOf('http') >= 0) // check to see if there's a link
 				noHTML = functions.getURL(noHTML);
-			}
+
 			return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: noHTML };
 		} else {
 			var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
-			if (htmlRemoval.indexOf('http') >= 0) { // check to see if there's a link
+
+			if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
 				htmlRemoval = functions.getURL(htmlRemoval);
-			}
+
 			return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: htmlRemoval };
 		}
 	}
@@ -387,6 +370,35 @@ exports.editMessage = function (msg, socket, admins, rawMsg) {
 exports.getURL = function (text) {
 	var link = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])/ig;
 	return text.replace(link, '<a href="$1" target="_blank">$1</a>');
+}
+
+exports.cmdMsg = function (type, text) {
+	var now = moment().format('LT'),
+		message;
+
+	switch (type) {
+		case cmdType.Normal:
+			message = now + ' [Server] '.white.bold + text;
+			break;
+
+		case cmdType.Error:
+			message = now + ' [Error] '.red.bold + text;
+			break;
+
+		case cmdType.User:
+			message = now + ' [User] '.gray.bold + text;
+			break;
+
+		case cmdType.Admin:
+			message = now + ' [Admin] '.blue.bold + text;
+			break;
+
+		default:
+			message = text;
+			break;
+	}
+
+	console.log(message);
 }
 
 exports.getStatus = function (data) {

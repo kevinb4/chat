@@ -52,7 +52,10 @@ This isn't required, but I thought I would leave this here. It's very useful for
 - [x] Add function comments
 - [x] Add formatting (bolding and italicizing)
 - [x] Add status (user idle, user is typing)
+- [x] Add a command to delete a set number of any user's messages
 - [ ] Add a command to delete messages with specific text
+- [ ] Add an afk command
+- [ ] Add custom emotes
 - [ ] Write a client in VB.net
 - [ ] Write an andriod app
 
