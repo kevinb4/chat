@@ -199,6 +199,8 @@ io.on('connection', function (socket) {
 							commands.adminDelete(msg, socket, io, users);
 						else if (msg.indexOf('/delmsgs ') === 0)
 							commands.adminDelMsgs(msg, socket, io, users);
+						else if (msg.indexOf('/deltext ') == 0)
+							commands.adminDelText(msg, socket, io, users);
 						else if (msg.indexOf('/mute ') === 0)
 							commands.adminMute(msg, socket, users);
 						else if (msg.indexOf('/js ') === 0)

@@ -34,13 +34,13 @@ module.exports = {
 			messages.push('<b>/name newname</b> or <b>/name user\'susername newusername</b> - change your own name or change another user\'s name');
 			messages.push('<b>/delete id</b> - deletes a message with that id (just click the timestamp of the message and it\'ll be put there for you)');
 			messages.push('<b>/delmsgs username amount</b> - deletes a set number of messages made by a user (use <b>all</b> if you want to delete every single message a user has made)');
+			messages.push('<b>/deltext text to delete</b> - deletes recent messages (last 50) that contain the text in the command');
 			messages.push('<b>/mute username time</b> - mutes a user for a set time (format: 1d2h3m)');
 			messages.push('<b>/js x</b> - used for quick testing (x being any Javascript code)');
 		}
 
-		for (item in messages) {
+		for (item in messages)
 			users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: messages[item] });
-		}
 	},
 
 	/**
@@ -81,11 +81,10 @@ module.exports = {
 		var now = functions.moment(),
 			getID = functions.guid();
 
-		if (command.substr(0, 11) === '/broadcast ') {
+		if (command.substr(0, 11) === '/broadcast ')
 			command = command.substr(11);
-		} else {
+		else
 			command = command.substr(4);
-		}
 
 		var msg = { id: getID, time: now, user: functions.serverMsg, message: command }
 		functions.cmdMsg(cmdType.Normal, ('[Admin] ').blue.bold + socket.username + ': ' + msg.message);
@@ -132,11 +131,11 @@ module.exports = {
 	 * @param {users}
 	 */
 	adminBan: function (command, socket, io, users) {
+		command = command.substr(5);
 		var now = functions.moment(),
 			getID = functions.guid();
+			index = command.indexOf(' '); // Find the space, where the message starts
 
-		command = command.substr(5);
-		var index = command.indexOf(' '); // Find the space, where the message starts
 		if (index != -1) { // Checks to see if the space exists
 			var name = command.substring(0, index), // Set the name
 				reason = command.substring(index + 1), // Set the reason
@@ -333,6 +332,13 @@ module.exports = {
 		});
 	},
 
+	/**
+	 * Deletes a set number of messages
+	 * @param {command}
+	 * @param {socket}
+	 * @param {io}
+	 * @param {users}
+	 */
 	adminDelMsgs: function (command, socket, io, users) {
 		command = command.split(' ');
 		var now = functions.moment(),
@@ -356,7 +362,7 @@ module.exports = {
 							if (result.length >= 1) { // make sure there are messages to delete
 								for (var i = 0; i < result.length; i++) {
 									io.emit('delete message', result[i].txtID);
-									functions.chat.collection.remove({ txtID: result[i].txtID });
+									functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
 								}
 
 								functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has deleted ' + amount + ' messages made by "' + result[0].username + '"');
@@ -371,7 +377,7 @@ module.exports = {
 							if (result.length >= 1) { // make sure there are messages to delete
 								for (var i = 0; i < result.length; i++) {
 									io.emit('delete message', result[i].txtID);
-									functions.chat.collection.remove({ txtID: result[i].txtID });
+									functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
 								}
 
 								functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has deleted ' + amount + ' messages made by "' + result[0].username + '"');
@@ -387,6 +393,34 @@ module.exports = {
 				}
 			}
 		});
+	},
+
+	/**
+	 * Deletes messages that conatains set text
+	 * @param {command}
+	 * @param {socket}
+	 * @param {io}
+	 * @param {users}
+	 */
+	adminDelText: function (command, socket, io, users) {
+		var now = functions.moment(),
+			getID = functions.guid(),
+			text = command.substring(9),
+			textFind = functions.chat.find({ msg: { $elemMatch: { message: { '$regex': text, '$options': 'i' } } }, deleted: false });
+
+			textFind.sort().limit(50).exec(function (err, result) {
+				functions.cmdMsg(cmdType.Normal, result);
+				if (result.length > 0) {
+					for (var i = 0; i < result.length; i++) {
+						io.emit('delete message', result[i].txtID);
+						functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+					}
+
+					functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has deleted messages that contains the text "' + text + '"');
+				} else {
+					users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: '"<b>' + text + '</b>" could not be found in any recent chats' });
+				}
+			});
 	},
 
 	/**
