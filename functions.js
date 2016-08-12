@@ -3,23 +3,21 @@
  * @author xCryptic (Github)
  */
 
-var mongoose = require('mongoose'),
+var functions = require('./functions.js'),
 	bcrypt = require('bcrypt-nodejs'),
-	functions = require('./functions.js'),
-	moment = require('moment'),
-	schema = mongoose.Schema({ msg: Array, txtID: String, rawMsg: Array, deleted: Boolean, username: String, date: { type: Date, default: Date.now } }),
-	userschema = mongoose.Schema({ username: String, password: String, isAdmin: Boolean, mute: String, ban: Boolean, banReason: String, optSound: Boolean });
-
-const cmdType = {Error: 'Error', Normal: 'Normal', User: 'User', Admin: 'Admin'};
+	colors = require('colors');
 
 exports.saveMsg;
 exports.serverMsg = '<font color="#5E97FF"><b>[Server]</b> ';
 exports.mongoose = require('mongoose');
-exports.bcrypt = require('bcrypt-nodejs');
 exports.moment = require('moment');
-exports.colors = require('colors');
-exports.chat = mongoose.model('message', schema);
-exports.userdb = mongoose.model('userdb', userschema);
+exports.cmdType = {Error: 'Error', Normal: 'Normal', User: 'User', Admin: 'Admin'};
+
+var schema = functions.mongoose.Schema({ msg: Array, txtID: String, rawMsg: Array, deleted: Boolean, username: String, date: { type: Date, default: Date.now } }),
+	userschema = functions.mongoose.Schema({ username: String, password: String, isAdmin: Boolean, mute: String, ban: Boolean, banReason: String, optSound: Boolean });
+
+exports.chat = functions.mongoose.model('message', schema);
+exports.userdb = functions.mongoose.model('userdb', userschema);
 
 /**
  * Gets the info from the client and registers the user
@@ -34,7 +32,7 @@ exports.register = function (registerData, callback) {
 
 	userCheck.sort().limit(1).exec(function (err, registerData) {
 		if (err) {
-			functions.cmdMsg(cmdType.Error, err);
+			functions.cmdMsg(functions.cmdType.Error, err);
 			callback('An error has occoured, please contact an administrator');
 		} else {
 			if (registerData.length == 1) {
@@ -45,17 +43,17 @@ exports.register = function (registerData, callback) {
 				bcrypt.genSalt(10, function (err, salt) {
 					bcrypt.hash(dataPassword, salt, null, function (errormsg, hash) {
 						/*if (error) { // it seems to always return 'undefined', even though the hash was created successfully
-							functions.cmdMsg(cmdType.Error, ' ..at hash! ' + hash);
+							functions.cmdMsg(functions.cmdType.Error, ' ..at hash! ' + hash);
 							callback('An error has occoured, please contact an administrator');	
 						} else {*/
 							saveUser = new functions.userdb({ username: dataUsername, password: hash, isAdmin: false, ban: false, banReason: '', optSound: true, optMessageId: false });
 							saveUser.save(function (err) {
 								if (err) {
-									functions.cmdMsg(cmdType.Error, err);
+									functions.cmdMsg(functions.cmdType.Error, err);
 									callback('An Error has occoured, please contact an administrator');
 								} else {
 									callback('success');
-									functions.cmdMsg(cmdType.Server, 'New user: ' + dataUsername);
+									functions.cmdMsg(functions.cmdType.Server, 'New user: ' + dataUsername);
 								}
 							});
 					//	}
@@ -75,7 +73,7 @@ exports.register = function (registerData, callback) {
  * @param {admins}
  * @param {users}
  */
-exports.login = function (data, callback, socket, io, admins, users, idle) {
+exports.login = function (data, callback, socket, io, admins, users, status) {
 	var loginUsername = data.username, loginPassword = data.password,
 		login,
 		regex = new RegExp(['^', loginUsername, '$'].join(''), 'i'); // Case insensitive search
@@ -83,7 +81,7 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 
 	userCheck.sort().limit(1).exec(function (err, result) {
 		if (err) {
-			functions.cmdMsg(cmdType.Error, err);
+			functions.cmdMsg(functions.cmdType.Error, err);
 			callback('An error has occoured, please contact an administrator');
 		} else {
 			if (result.length == 1) {
@@ -92,7 +90,7 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 
 				bcrypt.compare(loginPassword, dbPassword, function (errormsg, res) {
 					if (err) {
-						functions.cmdMsg(cmdType.Error, err);
+						functions.cmdMsg(functions.cmdType.Error, err);
 						callback('An error has occoured, please contact an administrator');
 					} else {
 						if (res) {
@@ -101,7 +99,7 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 							} else if (dbUsername in users) {
 								callback('You are already logged in');
 							} else {
-								var now = moment(),
+								var now = functions.moment(),
 									getID = functions.guid(),
 									message = { id: getID, time: now, user: functions.serverMsg, message: dbUsername + ' has joined' };
 
@@ -111,12 +109,12 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 								if (dbisAdmin === true)
 									admins[socket.username]++;
 
-								functions.updateNicknames(io, users, admins, idle);
-								functions.cmdMsg(cmdType.Normal, 'User Joined: ' + socket.username);
+								functions.updateNicknames(io, users, admins, status);
+								functions.cmdMsg(functions.cmdType.Normal, 'User Joined: ' + socket.username);
 								users[socket.username].emit('settings', dbOptSound);
 								io.emit('chat message', message);
 								functions.saveMsg = new functions.chat({ txtID: getID, msg: message, username: '[Server]', deleted: false });
-								functions.saveMsg.save(function (errormsg) { if (err) functions.cmdMsg(cmdType.Error, err); });
+								functions.saveMsg.save(function (errormsg) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 								callback('success');
 							}
 						} else {
@@ -125,7 +123,7 @@ exports.login = function (data, callback, socket, io, admins, users, idle) {
 					}
 				});
 			} else {
-				callback('That username does not exist in our database');
+				callback('You have entered an invalid username and password combo');
 			}
 		}
 	});
@@ -239,7 +237,7 @@ exports.italicize = function (msg, count) {
  * @param {users}
  */
 exports.message = function (msg, socket, io, users) {
-	var now = moment(),
+	var now = functions.moment(),
 		getID = functions.guid(),
 		message = {},
 		rawMessage = {},
@@ -248,13 +246,13 @@ exports.message = function (msg, socket, io, users) {
 
 	userCheck.sort().limit(1).exec(function (err, result) {
 		if (err) {
-			functions.cmdMsg(cmdType.Error, err);
+			functions.cmdMsg(functions.cmdType.Error, err);
 		} else {
 			var muteTime;
 			try {
-				muteTime = moment(result[0].mute, 'YYYY-MM-DD HH:mm');
+				muteTime = functions.moment(result[0].mute, 'YYYY-MM-DD HH:mm');
 			} catch (err) {
-				muteTime = moment(now, 'YYYY-MM-DD HH:mm');
+				muteTime = functions.moment(now, 'YYYY-MM-DD HH:mm');
 			}
 			if (muteTime > now) {
 				users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'You are muted - expires ' + muteTime.fromNow() });
@@ -289,8 +287,8 @@ exports.message = function (msg, socket, io, users) {
 				rawMessage = { id: getID, time: now, user: userName, message: msg };
 				message = { id: getID, time: now, user: userName, message: finalMsg };
 				functions.saveMsg = new functions.chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
-				functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
-				functions.cmdMsg(cmdType.User, socket.username + ': ' + msg);
+				functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
+				functions.cmdMsg(functions.cmdType.User, socket.username + ': ' + msg);
 				io.emit('chat message', message);
 			}
 		}
@@ -304,7 +302,7 @@ exports.message = function (msg, socket, io, users) {
  * @param {io}
  */
 exports.adminMessage = function (msg, socket, io) {
-	var now = moment(),
+	var now = functions.moment(),
 		getID = functions.guid(),
 		linkMsg = msg; // just so you don't get HTML from the link in the console
 
@@ -324,9 +322,9 @@ exports.adminMessage = function (msg, socket, io) {
 		rawMessage = { id: getID, time: now, user: userName, message: msg };
 
 	io.emit('chat message', message);
-	functions.cmdMsg(cmdType.Admin, socket.username + ': ' + msg);
+	functions.cmdMsg(functions.cmdType.Admin, socket.username + ': ' + msg);
 	functions.saveMsg = new functions.chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
-	functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+	functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 }
 
 /**
@@ -373,23 +371,23 @@ exports.getURL = function (text) {
 }
 
 exports.cmdMsg = function (type, text) {
-	var now = moment().format('LT'),
+	var now = functions.moment().format('LT'),
 		message;
 
 	switch (type) {
-		case cmdType.Normal:
+		case functions.cmdType.Normal:
 			message = now + ' [Server] '.white.bold + text;
 			break;
 
-		case cmdType.Error:
+		case functions.cmdType.Error:
 			message = now + ' [Error] '.red.bold + text;
 			break;
 
-		case cmdType.User:
+		case functions.cmdType.User:
 			message = now + ' [User] '.gray.bold + text;
 			break;
 
-		case cmdType.Admin:
+		case functions.cmdType.Admin:
 			message = now + ' [Admin] '.blue.bold + text;
 			break;
 
@@ -404,15 +402,23 @@ exports.cmdMsg = function (type, text) {
 exports.getStatus = function (data) {
 	var txt = '';
 
-	switch (data) {
+	switch (data.status) {
+		case 'afk':
+			if (data.msg != '')
+				txt = ' <font size="2"><i>afk (' + data.msg + ')</i></font><br/>';
+			else
+				txt = ' <font size="2"><i>afk</i></font><br/>';
+			break;
+
 		case 'idle':
-			txt = ' <font size="2"><i>(idle)</i></font><br/>';
+			txt = ' <font size="2"><i>idle</i></font><br/>';
 			break;
 
 		case 'typing':
-			txt = ' <font size="2"><i>(typing...)</i></font><br/>'
+			txt = ' <font size="2"><i>typing...</i></font><br/>'
 			break;
 	}
+
 	return txt;
 }
 

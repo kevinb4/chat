@@ -13,15 +13,13 @@ var express = require('express'),
 	admins = {},
 	status = {};
 
-const cmdType = {Error: 'Error', Normal: 'Normal', User: 'User', Admin: 'Admin'};
-
-functions.cmdMsg(cmdType.Normal, 'listening @ localhost:' + port);
+functions.cmdMsg(functions.cmdType.Normal, 'listening @ localhost:' + port);
 
 functions.mongoose.connect('mongodb://127.0.0.1/chat', function (err) {
 	if (err)
-		functions.cmdMsg(cmdType.Error, err);
+		functions.cmdMsg(functions.cmdType.Error, err);
 	else
-		functions.cmdMsg(cmdType.Normal, 'Connected to MongoDB');
+		functions.cmdMsg(functions.cmdType.Normal, 'Connected to MongoDB');
 });
 
 app.use('/images', express.static('images'));
@@ -40,7 +38,7 @@ io.on('connection', function (socket) {
 	var query = functions.chat.find({ deleted: false });
 
 	query.sort('-date').limit(50).exec(function (err, msgs) { // load the last 50 messages in order
-		if (err) functions.cmdMsg(cmdType.Error, err);
+		if (err) functions.cmdMsg(functions.cmdType.Error, err);
 		socket.emit('load messages', msgs);
 	});
 
@@ -68,10 +66,10 @@ io.on('connection', function (socket) {
 			delete status[socket.username]; // remove from status list
 
 		functions.updateNicknames(io, users, admins, status);
-		functions.cmdMsg(cmdType.Normal, 'User Left: ' + socket.username);
+		functions.cmdMsg(functions.cmdType.Normal, 'User Left: ' + socket.username);
 		io.emit('chat message', message);
 		functions.saveMsg = new functions.chat({ txtID: getID, msg: message, username: '[Server]', deleted: false });
-		functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+		functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 	});
 
 	/**
@@ -84,7 +82,7 @@ io.on('connection', function (socket) {
 		var query = functions.chat.find({ username: socket.username });
 
 		query.sort('-date').limit(1).exec(function (err, result) {
-			if (err) functions.cmdMsg(cmdType.Error, err);
+			if (err) functions.cmdMsg(functions.cmdType.Error, err);
 			try {
 				if (result[0].deleted === false) 
 					users[socket.username].emit('rcv prev msg', result[0].rawMsg[0].message);
@@ -103,9 +101,9 @@ io.on('connection', function (socket) {
 
 		query.sort().limit(1).exec(function (err, result) {
 			if (err)
-				functions.cmdMsg(cmdType.Error, err);
+				functions.cmdMsg(functions.cmdType.Error, err);
 			else
-				userdb.update({ username: socket.username }, { optSound: data }, function (err) { if (err) return functions.cmdMsg(cmdType.Error, err); });
+				userdb.update({ username: socket.username }, { optSound: data }, function (err) { if (err) return functions.cmdMsg(functions.cmdType.Error, err); });
 		});
 	});
 
@@ -118,16 +116,16 @@ io.on('connection', function (socket) {
 		var query = functions.chat.find({ username: socket.username });
 
 		query.sort('-date').limit(1).exec(function (err, msg) {
-			if (err) functions.cmdMsg(cmdType.Error, err);
+			if (err) functions.cmdMsg(functions.cmdType.Error, err);
 			if (data != '') {
 				var fullMsg = functions.editMessage(data, socket, admins, msg[0].rawMsg[0]);
 
-				functions.chat.update({ date: msg[0].date }, { $set: { 'rawMsg.0.message': data, 'msg.0.message': fullMsg.message } }, function (err) { if (err) return functions.cmdMsg(cmdType.Error, err); });
+				functions.chat.update({ date: msg[0].date }, { $set: { 'rawMsg.0.message': data, 'msg.0.message': fullMsg.message } }, function (err) { if (err) return functions.cmdMsg(functions.cmdType.Error, err); });
 				io.emit('edited message', fullMsg);
 			} else {
 				var msgData = { id: msg[0].rawMsg[0].id, time: msg[0].rawMsg[0].time, user: msg[0].rawMsg[0].user, message: '<i>This message has been deleted</i>' };
 
-				functions.chat.update({ date: msg[0].date }, { $set: { 'rawMsg.0.message': msgData.message, 'msg.0.message': msgData.message, deleted: true } }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+				functions.chat.update({ date: msg[0].date }, { $set: { 'rawMsg.0.message': msgData.message, 'msg.0.message': msgData.message, deleted: true } }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 				io.emit('edited message', msgData);
 			}
 		});
@@ -147,7 +145,7 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('idle', function () {
 		if (!(socket.username in status)) {
-			status[socket.username] = 'idle';
+			status[socket.username] = {status: 'idle'};
 			functions.updateNicknames(io, users, admins, status);
 		}
 	});
@@ -157,7 +155,7 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('typing', function () {
 		if (!(socket.username in status)) {
-			status[socket.username] = 'typing';
+			status[socket.username] = {status: 'typing'};
 			functions.updateNicknames(io, users, admins, status);
 		}
 	});
@@ -173,13 +171,27 @@ io.on('connection', function (socket) {
 	});
 
 	/**
+	 * Removes a user from only idle status
+	 */
+	socket.on('ridle', function () {
+		if (socket.username in status) {
+			if (status[socket.username].status == 'idle') {
+				delete status[socket.username];
+				functions.updateNicknames(io, users, admins, status);
+			}
+		}
+	});
+
+	/**
 	 * Handles chat messages along with commands
 	 * @param {msg}
 	 */
 	socket.on('chat message', function (msg) {
 		if (msg != '') { // check to make sure a message was entered
 			if (socket.username != '') { // check to make sure the client has a username
-				if (msg.indexOf('/commands') === 0) {
+				if (msg.indexOf('/afk') === 0) {
+					commands.AFK(msg, socket, io, users, admins, status);
+				} else if (msg.indexOf('/commands') === 0) {
 					commands.commands(socket, admins, users);
 				} else if (msg.indexOf('/w ') === 0) {
 					commands.whisper(msg, socket, users);
@@ -204,7 +216,9 @@ io.on('connection', function (socket) {
 						else if (msg.indexOf('/mute ') === 0)
 							commands.adminMute(msg, socket, users);
 						else if (msg.indexOf('/js ') === 0)
-							commands.adminJS(msg, socket, io, users);							
+							commands.adminJS(msg, socket, io, users);
+						else if (msg.indexOf('/') === 0)
+							users[socket.username].emit('chat message', { id: 'error', time: functions.moment(), user: functions.serverMsg, message: 'You have entered an invalid command "' + msg.substring(1) + '"' });
 						else
 							functions.adminMessage(msg, socket, io);
 					} else {
@@ -227,7 +241,7 @@ stdin.on('data', function (data) {
 	var input = data.toString().trim(); // take out any unecessary spaces
 
 	if (input == 'shutdown') { // shutdown command
-		functions.cmdMsg(cmdType.Normal, 'Shutting down...');
+		functions.cmdMsg(functions.cmdType.Normal, 'Shutting down...');
 		functions.mongoose.disconnect;
 		process.exit();
 	} else if (input.indexOf('kick ') === 0) {
@@ -245,6 +259,6 @@ stdin.on('data', function (data) {
 
 		io.emit('chat message', message);
 		functions.saveMsg = new functions.chat({ txtID: getID, msg: message, username: '[Server]', deleted: false });
-		functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+		functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 	}
 });

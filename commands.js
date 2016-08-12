@@ -6,9 +6,24 @@
 
 var functions = require('./functions.js');
 
-const cmdType = {Error: 'Error', Normal: 'Normal', User: 'User', Admin: 'Admin'};
-
 module.exports = {
+
+	AFK: function (command, socket, io, users, admins, status) {
+		command = command.substring(5);
+
+		if (!(socket.username in status)) {
+			var now = functions.moment(),
+				getID = functions.guid();
+
+			if (command.length > 15) {
+				users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'Your afk message is too long (max length is 15 characters)' })
+			} else {
+				status[socket.username] = { status: 'afk', msg: command };
+				functions.updateNicknames(io, users, admins, status);
+				users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'AFK message set - your status will be reset next time you chat' })
+			}
+		}
+	},
 
 	/**
 	 * Sends a list of commands to the user
@@ -22,8 +37,9 @@ module.exports = {
 			messages = [];
 
 		messages.push('..:: Chat Project commands ::..');
-		messages.push('/commands - shows a list of commands (you are here!)');
-		messages.push('/w username message - sends a whisper/pm to the selected user');
+		messages.push('<b>/afk message</b> - sets your status as afk with a custom message (max length is 15 characters)');
+		messages.push('<b>/commands</b> - shows a list of commands (you are here!)');
+		messages.push('<b>/w username message</b> - sends a whisper/pm to the selected user');
 
 		if (socket.username in admins) {
 			messages.push('..:: Admin Commands ::..');
@@ -87,10 +103,10 @@ module.exports = {
 			command = command.substr(4);
 
 		var msg = { id: getID, time: now, user: functions.serverMsg, message: command }
-		functions.cmdMsg(cmdType.Normal, ('[Admin] ').blue.bold + socket.username + ': ' + msg.message);
+		functions.cmdMsg(functions.cmdType.Normal, ('[Admin] ').blue.bold + socket.username + ': ' + msg.message);
 		io.emit('chat message', msg);
 		functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]', deleted: false });
-		functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+		functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 	},
 
 	/**
@@ -114,9 +130,9 @@ module.exports = {
 				msg = { id: getID, time: now, user: functions.serverMsg, message: '<b>' + target + '</b> has been kicked from the chat by <b>' + socket.username + '</b>' }
 
 			io.emit('chat message', msg);
-			functions.cmdMsg(cmdType.Normal, 'User "' + target + '" has been kicked by "' + socket.username + '"');
+			functions.cmdMsg(functions.cmdType.Normal, 'User "' + target + '" has been kicked by "' + socket.username + '"');
 			functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]', deleted: false });
-			functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+			functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 			users[target].disconnect();
 		} else {
 			users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'User <b>' + target + '</b> does not exist' });
@@ -144,22 +160,22 @@ module.exports = {
 
 			userCheck.sort().limit(1).exec(function (err, result) {
 				if (erro) {
-					functions.cmdMsg(cmdType.Error, err);
+					functions.cmdMsg(functions.cmdType.Error, err);
 				} else {
 					if (result.length == 1) { // If a match is found...
 						if (result[0].ban === true) {
 							users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: '<b>' + name + ' is already banned' });
 						} else {
-							functions.userdb.update({ username: name }, { ban: true, banReason: reason }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+							functions.userdb.update({ username: name }, { ban: true, banReason: reason }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 
 							if (name in users)
 								users[name].disconnect();
 
 							var msg = { id: getID, time: now, user: functions.serverMsg, message: 'User <b>' + name + '</b> has been banned by <b>' + socket.username + '</b> for <i>' + reason + '</i>' }
-							functions.cmdMsg(cmdType.Normal, '"' + name + '" has been banned by "' + socket.username + '" for "' + reason + '"');
+							functions.cmdMsg(functions.cmdType.Normal, '"' + name + '" has been banned by "' + socket.username + '" for "' + reason + '"');
 							io.emit('chat message', msg);
 							functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]', deleted: false });
-							functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+							functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 						}
 					} else {
 						users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'User <b>' + name + '</b> was not found' });
@@ -186,14 +202,14 @@ module.exports = {
 
 		userCheck.sort().limit(1).exec(function (err, result) {
 			if (err) {
-				functions.cmdMsg(cmdType.Error, err);
+				functions.cmdMsg(functions.cmdType.Error, err);
 			} else {
 				if (result.length == 1) {
 					if (result[0].ban === false) {
 						users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: '<b>' + name + '</b> is not banned' });
 					} else {
-						functions.userdb.update({ username: name }, { ban: false, banReason: '' }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
-						functions.cmdMsg(cmdType.Normal, '"' + name + '" has been unbanned by "' + socket.username + '"');
+						functions.userdb.update({ username: name }, { ban: false, banReason: '' }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
+						functions.cmdMsg(functions.cmdType.Normal, '"' + name + '" has been unbanned by "' + socket.username + '"');
 						users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'You have unbanned <b>' + name + '</b>' });
 					}
 				} else {
@@ -223,12 +239,12 @@ module.exports = {
 		if (name2 == null) { // admin is changing their own name
 			userCheck.sort().limit(1).exec(function (err, result) {
 				if (err) {
-					functions.cmdMsg(cmdType.Error, err);
+					functions.cmdMsg(functions.cmdType.Error, err);
 				} else {
 					if (result.length != 1) {
 						functions.userdb.update({ username: socket.username }, { username: name1 }, function (err) {
 							if (err) {
-								return functions.cmdMsg(cmdType.Error, err);
+								return functions.cmdMsg(functions.cmdType.Error, err);
 							} else {
 								delete users[socket.username];
 								users[name1] = socket;
@@ -237,11 +253,11 @@ module.exports = {
 
 								functions.updateNicknames(io, users, admins, status); // reload the userlist
 								var msg = { id: getID, time: now, user: functions.serverMsg, message: '<b>' + socket.username + '</b> has changed their name to <b>' + name1 + '</b>' }
-								functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has changed their name to "' + name1 + '"');
+								functions.cmdMsg(functions.cmdType.Normal, '"' + socket.username + '" has changed their name to "' + name1 + '"');
 								socket.username = name1;
 								io.emit('chat message', msg);
 								functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]', deleted: false });
-								functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+								functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 							}
 						});
 					} else {
@@ -252,7 +268,7 @@ module.exports = {
 		} else { // admin is changing someone else's name
 			userCheck.sort().limit(1).exec(function (err, result) {
 				if (err) {
-					functions.cmdMsg(cmdType.Error, err);
+					functions.cmdMsg(functions.cmdType.Error, err);
 				} else {
 					if (result.length == 1) { // make sure the user exists
 						var newUser = new RegExp(['^', name2, '$'].join(''), 'i'), // case insensitive search
@@ -261,12 +277,12 @@ module.exports = {
 
 						newUserCheck.sort().limit(1).exec(function (err, result) {
 							if (err) {
-								functions.cmdMsg(cmdType.Error, err);
+								functions.cmdMsg(functions.cmdType.Error, err);
 							} else {
 								if (result.length != 1) { // make sure the new username doesn't exist
 									functions.userdb.update({ username: name1 }, { username: name2 }, function (err) {
 										if (err) {
-											return functions.cmdMsg(cmdType.Error, err);
+											return functions.cmdMsg(functions.cmdType.Error, err);
 										} else {
 											if (name1 in users) { // if users is online
 												var userSocket = users[name1];
@@ -282,10 +298,10 @@ module.exports = {
 
 											functions.updateNicknames(io, users, admins, status); // reload the userlist
 											var msg = { id: getID, time: now, user: functions.serverMsg, message: '<b>' + socket.username + '</b> has changed <b>' + name1 + '</b> name to <b>' + name2 + '</b>' }
-											functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has changed "' + name1 + '" name to "' + name2 + '"');
+											functions.cmdMsg(functions.cmdType.Normal, '"' + socket.username + '" has changed "' + name1 + '" name to "' + name2 + '"');
 											io.emit('chat message', msg);
 											functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]', deleted: false });
-											functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+											functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 										}
 									});
 								} else {
@@ -313,9 +329,9 @@ module.exports = {
 		var query = functions.chat.find({ txtID: messageID });
 
 		query.sort().limit(1).exec(function (err, msg) { // Make sure the message exists
-			if (err) functions.cmdMsg(cmdType.Error, err);
+			if (err) functions.cmdMsg(functions.cmdType.Error, err);
 			if (msg.length == 1) {
-				functions.chat.update({ txtID: messageID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+				functions.chat.update({ txtID: messageID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 				var delMsg;
 
 				try {
@@ -324,9 +340,9 @@ module.exports = {
 					delMsg = msg[0].msg[0].message;
 				}
 
-				functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has deleted message "' + delMsg + '" made by "' + msg[0].username + '"');
+				functions.cmdMsg(functions.cmdType.Normal, '"' + socket.username + '" has deleted message "' + delMsg + '" made by "' + msg[0].username + '"');
 			} else {
-				functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" deleted a non-saved message (' + messageID + ')');
+				functions.cmdMsg(functions.cmdType.Normal, '"' + socket.username + '" deleted a non-saved message (' + messageID + ')');
 			}
 			io.emit('delete message', messageID);
 		});
@@ -350,7 +366,7 @@ module.exports = {
 
 		userCheck.sort().exec(function (err, result) {
 			if (err) {
-				functions.cmdMsg(cmdType.Error, err);
+				functions.cmdMsg(functions.cmdType.Error, err);
 			} else {
 				if (name.toLowerCase() == '[server]')
 					regex = '[Server]';
@@ -362,10 +378,10 @@ module.exports = {
 							if (result.length >= 1) { // make sure there are messages to delete
 								for (var i = 0; i < result.length; i++) {
 									io.emit('delete message', result[i].txtID);
-									functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+									functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 								}
 
-								functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has deleted ' + amount + ' messages made by "' + result[0].username + '"');
+								functions.cmdMsg(functions.cmdType.Normal, '"' + socket.username + '" has deleted ' + amount + ' messages made by "' + result[0].username + '"');
 							} else {
 								users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'There are no messages to delete' });
 							}
@@ -377,10 +393,10 @@ module.exports = {
 							if (result.length >= 1) { // make sure there are messages to delete
 								for (var i = 0; i < result.length; i++) {
 									io.emit('delete message', result[i].txtID);
-									functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+									functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 								}
 
-								functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has deleted ' + amount + ' messages made by "' + result[0].username + '"');
+								functions.cmdMsg(functions.cmdType.Normal, '"' + socket.username + '" has deleted ' + amount + ' messages made by "' + result[0].username + '"');
 							} else {
 								users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'There are no messages to delete' });
 							}
@@ -409,14 +425,14 @@ module.exports = {
 			textFind = functions.chat.find({ msg: { $elemMatch: { message: { '$regex': text, '$options': 'i' } } }, deleted: false });
 
 			textFind.sort().limit(50).exec(function (err, result) {
-				functions.cmdMsg(cmdType.Normal, result);
+				functions.cmdMsg(functions.cmdType.Normal, result);
 				if (result.length > 0) {
 					for (var i = 0; i < result.length; i++) {
 						io.emit('delete message', result[i].txtID);
-						functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+						functions.chat.update({ txtID: result[i].txtID }, { $set: { deleted: true } }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 					}
 
-					functions.cmdMsg(cmdType.Normal, '"' + socket.username + '" has deleted messages that contains the text "' + text + '"');
+					functions.cmdMsg(functions.cmdType.Normal, '"' + socket.username + '" has deleted messages that contains the text "' + text + '"');
 				} else {
 					users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: '"<b>' + text + '</b>" could not be found in any recent chats' });
 				}
@@ -447,7 +463,7 @@ module.exports = {
 		if (muteLength.length >= 2) {
 			userCheck.sort().limit(1).exec(function (err, result) {
 				if (err) {
-					functions.cmdMsg(cmdType.Error, err);
+					functions.cmdMsg(functions.cmdType.Error, err);
 				} else {
 					if (result.length == 1) {
 						for (var i = 0; i < muteLength.length; i++) {
@@ -494,10 +510,10 @@ module.exports = {
 						} else {
 							functions.userdb.update({ username: name }, { $set: { mute: modTime.format('YYYY-MM-DD HH:mm') } }, function (err) {
 								if (err) { // make sure the db was updated successfully
-									functions.cmdMsg(cmdType.Error, err);
+									functions.cmdMsg(functions.cmdType.Error, err);
 									users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'There has been an error saving to the database - error description: <i>' + err + '</i>' });
 								} else {
-									functions.cmdMsg(cmdType.Normal, '"' + name + '" has been muted by "' + socket.username + '" - expires ' + modTime.fromNow() + ' @ ' + modTime.format('LT'));
+									functions.cmdMsg(functions.cmdType.Normal, '"' + name + '" has been muted by "' + socket.username + '" - expires ' + modTime.fromNow() + ' @ ' + modTime.format('LT'));
 									users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: '<b>' + name + '</b> has been muted - expires <i>' + modTime.fromNow() + '</i>' });
 
 									if (name in users)
@@ -529,7 +545,7 @@ module.exports = {
 		try {
 			msg = eval(js.substr(4)); 
 		} catch (e) {
-			functions.cmdMsg(cmdType.Error, 'Eval Error: ' + e.message)
+			functions.cmdMsg(functions.cmdType.Error, 'Eval Error: ' + e.message)
 			msg = e.message;
 		}
 
@@ -547,13 +563,13 @@ module.exports = {
 			getID = functions.guid();
 
 		if (input in users) {
-			functions.cmdMsg(cmdType.Normal, 'User "' + input + '" has been kicked');
+			functions.cmdMsg(functions.cmdType.Normal, 'User "' + input + '" has been kicked');
 			var msg = { id: getID, time: now, user: functions.serverMsg, message: 'User <b>' + input + '</b> has been kicked from the chat' };
 			io.emit('chat message', msg);
 			functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]' });
 			users[input].disconnect();
 		} else {
-			functions.cmdMsg(cmdType.Error, 'User "' + input + '" does not exist');
+			functions.cmdMsg(functions.cmdType.Error, 'User "' + input + '" does not exist');
 		}
 	},
 
@@ -579,30 +595,30 @@ module.exports = {
 
 			userCheck.sort().limit(1).exec(function (err, result) {
 				if (err) {
-					functions.cmdMsg(cmdType.Error, err);
+					functions.cmdMsg(functions.cmdType.Error, err);
 				} else {
 					if (result.length == 1) {
 						if (result[0].ban === true) {
-							functions.cmdMsg(cmdType.Error, '"' + name + '" is already banned');
+							functions.cmdMsg(functions.cmdType.Error, '"' + name + '" is already banned');
 						} else {
-							functions.userdb.update({ username: name }, { ban: true, banReason: reason }, function (err) { functions.cmdMsg(cmdType.Error, err); });
+							functions.userdb.update({ username: name }, { ban: true, banReason: reason }, function (err) { functions.cmdMsg(functions.cmdType.Error, err); });
 
 							if (name in users)
 								users[name].disconnect();
 
-							functions.cmdMsg(cmdType.Normal, '"' + name + '" has been banned');
+							functions.cmdMsg(functions.cmdType.Normal, '"' + name + '" has been banned');
 							var msg = { id: getID, time: now, user: functions.serverMsg, message: 'User <b>' + name + '</b> has been banned for <i>' + reason + '</i>' };
 							io.emit('chat message', msg);
 							functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]', deleted: false });
-							functions.saveMsg.save(function (err) { if (err) if (err) functions.cmdMsg(cmdType.Error, err); });
+							functions.saveMsg.save(function (err) { if (err) if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 						}
 					} else {
-						functions.cmdMsg(cmdType.Error, 'User "' + name + '" was not found');
+						functions.cmdMsg(functions.cmdType.Error, 'User "' + name + '" was not found');
 					}
 				}
 			});
 		} else {
-			functions.cmdMsg(cmdType.Error, 'The command was entered incorrectly - ban name reason');
+			functions.cmdMsg(functions.cmdType.Error, 'The command was entered incorrectly - ban name reason');
 		}
 	},
 
@@ -617,17 +633,17 @@ module.exports = {
 
 		userCheck.sort().limit(1).exec(function (err, result) {
 			if (err) {
-				functions.cmdMsg(cmdType.Error, err);
+				functions.cmdMsg(functions.cmdType.Error, err);
 			} else {
 				if (result.length == 1) {
 					if (result[0].ban === false) {
-						functions.cmdMsg(cmdType.Error, '"' + name + '" is not banned');
+						functions.cmdMsg(functions.cmdType.Error, '"' + name + '" is not banned');
 					} else {
-						functions.userdb.update({ username: name }, { ban: false, banReason: '' }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
-						functions.cmdMsg(cmdType.Normal, '"' + name + '" has been unbanned');
+						functions.userdb.update({ username: name }, { ban: false, banReason: '' }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
+						functions.cmdMsg(functions.cmdType.Normal, '"' + name + '" has been unbanned');
 					}
 				} else {
-					functions.cmdMsg(cmdType.Error, 'User "' + name + '" was not found');
+					functions.cmdMsg(functions.cmdType.Error, 'User "' + name + '" was not found');
 				}
 			}
 		});
@@ -654,19 +670,19 @@ module.exports = {
 
 			userCheck.sort().limit(1).exec(function (err, result) {
 				if (err) {
-					functions.cmdMsg(cmdType.Error, err);
+					functions.cmdMsg(functions.cmdType.Error, err);
 				} else {
 					if (result.length == 1) { // If a match is found...
 						if (trufal == 'true') { // if the user enters true
 							if (result[0].isAdmin === true) {
-								functions.cmdMsg(cmdType.Error, '"' + name + '" is already an admin');
+								functions.cmdMsg(functions.cmdType.Error, '"' + name + '" is already an admin');
 							} else {
-								functions.userdb.update({ username: name }, { isAdmin: true }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
-								functions.cmdMsg(cmdType.Normal, '"' + name + '" rank has been changed to admin');
+								functions.userdb.update({ username: name }, { isAdmin: true }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
+								functions.cmdMsg(functions.cmdType.Normal, '"' + name + '" rank has been changed to admin');
 								var msg = { id: getID, time: now, user: functions.serverMsg, message: '<b>' + name + '</b> is now an Admin' };
 								io.emit('chat message', msg);
 								functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]', deleted: false });
-								functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+								functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 
 								if (name in users) // If the user is online
 									admins[name]++; // have that user added to the admin group
@@ -675,14 +691,14 @@ module.exports = {
 							}
 						} else if (trufal == 'false') { // if the user enters false
 							if (result[0].isAdmin === false) {
-								functions.cmdMsg(cmdType.Error, '"' + name + '" is not an admin');
+								functions.cmdMsg(functions.cmdType.Error, '"' + name + '" is not an admin');
 							} else {
-								functions.userdb.update({ username: name }, { isAdmin: false }, function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
-								functions.cmdMsg(cmdType.Normal, '"' + name + '" has been removed from the admin group');
+								functions.userdb.update({ username: name }, { isAdmin: false }, function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
+								functions.cmdMsg(functions.cmdType.Normal, '"' + name + '" has been removed from the admin group');
 								var msg = { id: getID, time: now, user: functions.serverMsg, message: '<b>' + name + '</b> has been demoted to a user' };
 								io.emit('chat message', msg);
 								functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, username: '[Server]', deleted: false });
-								functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(cmdType.Error, err); });
+								functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 
 								if (name in admins) // if the user is online
 									delete admins[name]; // have that user removed from the admin group
@@ -690,15 +706,15 @@ module.exports = {
 								functions.updateNicknames(io, users, admins, status); // reload the userlist
 							}
 						} else {
-							functions.cmdMsg(cmdType.Error, 'You must enter true or false');
+							functions.cmdMsg(functions.cmdType.Error, 'You must enter true or false');
 						}
 					} else {
-						functions.cmdMsg(cmdType.Error, 'User "' + name + '" was not found');
+						functions.cmdMsg(functions.cmdType.Error, 'User "' + name + '" was not found');
 					}
 				}
 			});
 		} else {
-			functions.cmdMsg(cmdType.Error, 'The command was not entered correctly - admin name true/false');
+			functions.cmdMsg(functions.cmdType.Error, 'The command was not entered correctly - admin name true/false');
 		}
 	}
 }

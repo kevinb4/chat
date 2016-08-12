@@ -91,9 +91,8 @@ function loadMessages(msgs) {
 			localDate = moment(msgs[i].msg[0].time).format('LLLL'),
 			localHours = moment(msgs[i].msg[0].time).hour();
 
-		if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22) {
+		if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22)
 			localTime = "0" + localTime;
-		}
 
 		appendMessage('<span id="' + msgs[i].msg[0].id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].msg[0].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].msg[0].user + msgs[i].msg[0].message + '</font><br/>');
 	}
@@ -130,9 +129,8 @@ btnLogin.click(function () {
  * Checks for the enter key being pressed
  */
 loginForm.keypress(function (e) {
-	if (e.which == 13) {
+	if (e.which == 13)
 		login();
-	}
 });
 
 /**
@@ -182,11 +180,11 @@ btnOptions.click(function () {
  * Handles clicking the save button
  */
 btnSave.click(function () {
-	if (checkbox1.checked) {
+	if (checkbox1.checked)
 		optSound = true;
-	} else {
+	else
 		optSound = false;
-	}
+
 	socket.emit('settings saved', optSound);
 	options.fadeOut('slow', function () {
 		chat.fadeIn('slow', function () { });
@@ -274,7 +272,7 @@ ifvisible.on('idle', function () {
  * Detects when the user comes back from being idle
  */
 ifvisible.on('wakeup', function () {
-	socket.emit('rstatus');
+	socket.emit('ridle');
 });
 
 /**
@@ -286,9 +284,8 @@ socket.on('chat message', function (msg) {
 		localDate = moment(msg.time).format('LLLL'),
 		localHours = moment(msg.time).hour();
 
-	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22) {
+	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22)
 		localTime = "0" + localTime;
-	}
 
 	appendMessage('<span id="' + msg.id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msg.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msg.user + msg.message + '</font><br/>');
 
@@ -337,9 +334,8 @@ socket.on('edited message', function (data) {
 		localDate = moment(data.time).format('LLLL'),
 		localHours = moment(data.time).hour();
 
-	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22) {
+	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22)
 		localTime = "0" + localTime;
-	}
 
 	document.getElementById(data.id).innerHTML = '<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + data.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + data.user + data.message + '<br/>';
 	chatbox.perfectScrollbar('update');
@@ -368,9 +364,9 @@ socket.on('delete message', function (data) {
 socket.on('usernames', function (data) {
 	var list = '';
 
-	for (var i = 0; i < data.length; i++) {
+	for (var i = 0; i < data.length; i++)
 		list += data[i];
-	}
+
 	document.getElementById('online-users').innerHTML = list;
 });
 
