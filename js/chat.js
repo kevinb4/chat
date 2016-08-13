@@ -75,6 +75,7 @@ function appendMessage(msg) {
 	textarea.append(msg); // show message
 	chatbox.perfectScrollbar('update');
 	$('[data-toggle="tooltip"]').tooltip(); // for full timestamp
+
 	if (bottom == 400) { // check to see if the scroll bar is at the bottom
 		chatbox.scrollTop($(chatbox).get(0).scrollHeight); // scroll to the bottom
 		chatbox.perfectScrollbar('update');
@@ -86,15 +87,15 @@ function appendMessage(msg) {
  * @param {msgs}
  */
 function loadMessages(msgs) {
-	for (var i = msgs.length - 1; i >= 0; i--) {
-		var localTime = moment(msgs[i].msg[0].time).format('LT'),
-			localDate = moment(msgs[i].msg[0].time).format('LLLL'),
-			localHours = moment(msgs[i].msg[0].time).hour();
+	for (var i = Object.keys(msgs).length - 1; i >= 0; i--) {
+		var localTime = moment(msgs[i].time).format('LT'),
+			localDate = moment(msgs[i].time).format('LLLL'),
+			localHours = moment(msgs[i].time).hour();
 
 		if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22)
 			localTime = "0" + localTime;
 
-		appendMessage('<span id="' + msgs[i].msg[0].id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].msg[0].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].msg[0].user + msgs[i].msg[0].message + '</font><br/>');
+		appendMessage('<span id="' + msgs[i].id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].user + msgs[i].message + '</font><br/>');
 	}
 }
 

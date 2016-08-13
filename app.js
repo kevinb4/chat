@@ -39,7 +39,11 @@ io.on('connection', function (socket) {
 
 	query.sort('-date').limit(50).exec(function (err, msgs) { // load the last 50 messages in order
 		if (err) functions.cmdMsg(functions.cmdType.Error, err);
-		socket.emit('load messages', msgs);
+		var msgArray = {};
+		for (var i = 0; i < msgs.length; i++)
+			msgArray[i] = msgs[i].msg[0];
+
+		socket.emit('load messages', msgArray);
 	});
 
 	socket.on('register', function (registerData, callback) {
