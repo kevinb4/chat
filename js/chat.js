@@ -88,14 +88,7 @@ function appendMessage(msg) {
  */
 function loadMessages(msgs) {
 	for (var i = Object.keys(msgs).length - 1; i >= 0; i--) {
-		var localTime = moment(msgs[i].time).format('LT'),
-			localDate = moment(msgs[i].time).format('LLLL'),
-			localHours = moment(msgs[i].time).hour();
-
-		if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22)
-			localTime = "0" + localTime;
-
-		appendMessage('<span id="' + msgs[i].id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msgs[i].id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msgs[i].user + msgs[i].message + '</font><br/>');
+		appendMessage(message(msgs[i]));
 	}
 }
 
@@ -105,6 +98,30 @@ function loadMessages(msgs) {
  */
 function clickHandler(object) {
 	socket.emit('delete message', object.id);
+}
+
+function message (data) {
+	var classType,
+		localTime = moment(data.time).format('LT'),
+		localDate = moment(data.time).format('LLLL'),
+		localHours = moment(data.time).hour();
+
+	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22)
+		localTime = "0" + localTime;
+
+	switch (data.type) {
+		case 'Server':
+		case 'ServerSave':
+			classType = 'serverMsg';
+			break;
+
+		case 'ServerLeave': classType = 'serverLeave'; break;
+		case 'Whisper': classType = 'whisper'; break;
+		case 'Admin': classType = 'adminMsg'; break;
+		default: classType = ''; break;
+	}
+
+	return '<span id="' + data.id + '"><span id="' + data.id + '" class="time" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" onclick="clickHandler(this);">' + localTime + '</span> <span class="' + classType + '"><b>' + data.user + (classType.contains('server') ? '</b> ' + data.message + '</span>' : '</b></span>: ' + data.message) + '<br></span>';
 }
 
 /**
@@ -276,19 +293,21 @@ ifvisible.on('wakeup', function () {
 	socket.emit('ridle');
 });
 
+socket.on('console', function (data) {
+	console.log(data)
+});
+
+socket.on('userdata', function (userdata) {
+	admins = userdata.admins;
+	users = userdata.users;
+});
+
 /**
  * Handles sending messages to the chat box
  * @param {msg}
  */
 socket.on('chat message', function (msg) {
-	var localTime = moment(msg.time).format('LT'),
-		localDate = moment(msg.time).format('LLLL'),
-		localHours = moment(msg.time).hour();
-
-	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22)
-		localTime = "0" + localTime;
-
-	appendMessage('<span id="' + msg.id + '"><font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + msg.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + msg.user + msg.message + '</font><br/>');
+	appendMessage(message(msg));
 
 	if (!ifvisible.now()) {
 		if (chat.is(":visible")) // so we don't get this on the login screen
@@ -331,14 +350,7 @@ socket.on('rcv prev msg', function (msg) {
  * @param {data}
  */
 socket.on('edited message', function (data) {
-	var localTime = moment(data.time).format('LT'),
-		localDate = moment(data.time).format('LLLL'),
-		localHours = moment(data.time).hour();
-
-	if (localHours > 0 && localHours < 10 || localHours > 12 && localHours < 22)
-		localTime = "0" + localTime;
-
-	document.getElementById(data.id).innerHTML = '<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" id="' + data.id + '" onclick="clickHandler(this);">' + localTime + '</font> ' + data.user + data.message + '<br/>';
+	document.getElementById(data.id).innerHTML = message(data);
 	chatbox.perfectScrollbar('update');
 });
 
@@ -347,10 +359,10 @@ socket.on('edited message', function (data) {
  * @param {data}
  */
 socket.on('delete message', function (data) {
-	var element = document.getElementById(data);
-	element.outerHTML = '';
-
 	try {
+		var element = document.getElementById(data);
+		element.outerHTML = '';
+
 		delete element;
 		chatbox.perfectScrollbar('update');
 	} catch (err) {
@@ -377,7 +389,7 @@ socket.on('usernames', function (data) {
 socket.on('disconnect', function () {
 	textarea.html(''); // clear the chat
 	users.html(''); // clear the userlist
-	appendMessage('<font size="2" data-toggle="tooltip" data-placement="auto-right" title="' + moment().format('LLLL') + '" onclick="clickHandler(this);">' + moment().format('LT') + '</font> <font color="#5E97FF"><b>[Server]</b> You have been disconnected</font><br/>');
+	appendMessage('<span class="time" data-toggle="tooltip" data-placement="auto-right" title="' + moment().format('LLLL') + '">' + moment().format('LT') + '</span> <span class="serverMsg"><b>[Server]</b> You have been disconnected</span>');
 	reply.fadeOut('slow', function () { }); // so the user can no longer type
 	btnOptions.fadeOut('slow', function () { }); // so the user can't change options
 });

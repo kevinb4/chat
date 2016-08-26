@@ -8,13 +8,13 @@ var functions = require('./functions.js'),
 	colors = require('colors');
 
 exports.saveMsg;
-exports.serverMsg = '<font color="#5E97FF"><b>[Server]</b> ';
 exports.mongoose = require('mongoose');
 exports.moment = require('moment');
-exports.cmdType = {Error: 'Error', Normal: 'Normal', User: 'User', Admin: 'Admin'};
+exports.cmdType = { Error: 'Error', Normal: 'Normal', User: 'User', Admin: 'Admin' };
+exports.msgType = { User: 'User', Whisper: 'Whisper', Admin: 'Admin', Server: 'Server', ServerSave: 'ServerSave', ServerLeave: 'ServerLeave' };
 
-var schema = functions.mongoose.Schema({ msg: Array, txtID: String, rawMsg: Array, deleted: Boolean, username: String, date: { type: Date, default: Date.now } }),
-	userschema = functions.mongoose.Schema({ username: String, password: String, isAdmin: Boolean, mute: String, ban: Boolean, banReason: String, optSound: Boolean });
+var schema = functions.mongoose.Schema({ txtID: String, msg: Array, rawMsg: Array, deleted: Boolean, username: String, type: String, date: { type: Date, default: Date.now } }),
+	userschema = functions.mongoose.Schema({ uid: Number, username: String, password: String, role: String, mute: String, ban: Boolean, banReason: String, options: { optSound: Boolean }});
 
 exports.chat = functions.mongoose.model('message', schema);
 exports.userdb = functions.mongoose.model('userdb', userschema);
@@ -46,14 +46,14 @@ exports.register = function (registerData, callback) {
 							functions.cmdMsg(functions.cmdType.Error, ' ..at hash! ' + hash);
 							callback('An error has occoured, please contact an administrator');	
 						} else {*/
-							saveUser = new functions.userdb({ username: dataUsername, password: hash, isAdmin: false, ban: false, banReason: '', optSound: true, optMessageId: false });
+							saveUser = new functions.userdb({ username: dataUsername, password: hash, role: 'User', ban: false, banReason: '', optSound: true, optMessageId: false });
 							saveUser.save(function (err) {
 								if (err) {
 									functions.cmdMsg(functions.cmdType.Error, err);
 									callback('An Error has occoured, please contact an administrator');
 								} else {
 									callback('success');
-									functions.cmdMsg(functions.cmdType.Server, 'New user: ' + dataUsername);
+									functions.cmdMsg(functions.cmdType.Normal, 'New user: ' + dataUsername);
 								}
 							});
 					//	}
@@ -85,8 +85,8 @@ exports.login = function (data, callback, socket, io, admins, users, status) {
 			callback('An error has occoured, please contact an administrator');
 		} else {
 			if (result.length == 1) {
-				var dbUsername = result[0].username, dbPassword = result[0].password, dbisAdmin = result[0].isAdmin, dbBan = result[0].ban, dbbanReason = result[0].banReason,
-					dbOptSound = result[0].optSound;
+				var dbUsername = result[0].username, dbPassword = result[0].password, dbRole = result[0].role,
+					dbBan = result[0].ban, dbbanReason = result[0].banReason, dbOptSound = result[0].optSound;
 
 				bcrypt.compare(loginPassword, dbPassword, function (errormsg, res) {
 					if (err) {
@@ -99,22 +99,20 @@ exports.login = function (data, callback, socket, io, admins, users, status) {
 							} else if (dbUsername in users) {
 								callback('You are already logged in');
 							} else {
-								var now = functions.moment(),
-									getID = functions.guid(),
-									message = { id: getID, time: now, user: functions.serverMsg, message: dbUsername + ' has joined' };
-
+								socket.role = dbRole;
 								socket.username = dbUsername;
 								users[socket.username] = socket;
 
-								if (dbisAdmin === true)
+								if (dbRole == 'Admin')
 									admins[socket.username]++;
 
 								functions.updateNicknames(io, users, admins, status);
 								functions.cmdMsg(functions.cmdType.Normal, 'User Joined: ' + socket.username);
 								users[socket.username].emit('settings', dbOptSound);
-								io.emit('chat message', message);
-								functions.saveMsg = new functions.chat({ txtID: getID, msg: message, username: '[Server]', deleted: false });
-								functions.saveMsg.save(function (errormsg) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
+								io.emit('chat message', functions.clientMsg({
+									type: functions.msgType.ServerSave,
+									msg: dbUsername + ' has joined'
+								}));
 								callback('success');
 							}
 						} else {
@@ -239,8 +237,6 @@ exports.italicize = function (msg, count) {
 exports.message = function (msg, socket, io, users) {
 	var now = functions.moment(),
 		getID = functions.guid(),
-		message = {},
-		rawMessage = {},
 		regex = new RegExp(['^', socket.username, '$'].join(''), 'i'),
 		userCheck = functions.userdb.find({ username: regex }); // check to make sure the user exists
 
@@ -254,77 +250,54 @@ exports.message = function (msg, socket, io, users) {
 			} catch (err) {
 				muteTime = functions.moment(now, 'YYYY-MM-DD HH:mm');
 			}
-			if (muteTime > now) {
-				users[socket.username].emit('chat message', { id: getID, time: now, user: functions.serverMsg, message: 'You are muted - expires ' + muteTime.fromNow() });
+			if (socket.role != 'Admin' && muteTime > now) {
+				users[socket.username].emit('chat message', functions.clientMsg({
+					type: functions.msgType.Server,
+					msg: 'You are muted - expires <i>' + muteTime.fromNow() + '</i>'
+				}));
 			} else {
-				var userName = '<b>' + socket.username + '</b>: ',
-					finalMsg;
+				var finalMsg;
 
-				if (msg.indexOf('<') == -1) { // check if the user is trying to use html
-					var urlMsg = msg; // just so you don't get HTML from the link in the console
-					
-					if (urlMsg.indexOf('http') >= 0) // check to see if there's a link
-						urlMsg = functions.getURL(noHTML);
-
-					finalMsg = urlMsg;
-				} else {
+				if (socket.role != 'Admin' && msg.indexOf('<') != -1) { // check if the user is trying to use html
 					var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
 
+					//if (htmlRemoval.match(/(http?:\/\/.*\.(?:png|jpg|jpeg|gif))/i))
+					//	htmlRemoval = functions.getImg(htmlRemoval);
 					if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
 						htmlRemoval = functions.getURL(htmlRemoval);
 
 					finalMsg = htmlRemoval;
+				} else {
+					var urlMsg = msg; // just so you don't get HTML from the link in the console
+					
+					//if (urlMsg.match(/(http?:\/\/.*\.(?:png|jpg|gif))/i))
+					//	urlMsg = functions.getImg(urlMsg);
+					if (urlMsg.indexOf('http') >= 0) // check to see if there's a link
+						urlMsg = functions.getURL(urlMsg);
+
+					finalMsg = urlMsg;
 				}
 
 				var astNum = (msg.match(/\*/g) || []).length,
-					italNum = (msg.match(/\_/g) || []).length;
+					italNum = (msg.match(/\_/g) || []).length,
+					serverType = (socket.role in functions.cmdType ? socket.role : functions.cmdType.User),
+					clientType = (socket.role in functions.msgType ? socket.role : functions.msgType.User);
 
 				if (astNum > 1)
 					finalMsg = functions.bold(finalMsg, astNum);
 				if (italNum > 1)
 					finalMsg = functions.italicize(finalMsg, italNum);
 
-				rawMessage = { id: getID, time: now, user: userName, message: msg };
-				message = { id: getID, time: now, user: userName, message: finalMsg };
-				functions.saveMsg = new functions.chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
-				functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
-				functions.cmdMsg(functions.cmdType.User, socket.username + ': ' + msg);
-				io.emit('chat message', message);
+				functions.cmdMsg(serverType, socket.username + ': ' + msg);
+				io.emit('chat message', functions.clientMsg({
+					user: socket.username,
+					type: clientType,
+					raw: msg,
+					msg: finalMsg
+				}));
 			}
 		}
 	});
-}
-
-/**
- * Handles sending admin's messages
- * @param {msg}
- * @param {socket}
- * @param {io}
- */
-exports.adminMessage = function (msg, socket, io) {
-	var now = functions.moment(),
-		getID = functions.guid(),
-		linkMsg = msg; // just so you don't get HTML from the link in the console
-
-	if (linkMsg.indexOf('http') >= 0)// check to see if there's a link
-		linkMsg = functions.getURL(linkMsg);
-
-	var astNum = (linkMsg.match(/\*/g) || []).length,
-		italNum = (linkMsg.match(/\_/g) || []).length;
-
-	if (astNum > 1)
-		linkMsg = functions.bold(linkMsg, astNum);
-	if (italNum > 1)
-		linkMsg = functions.italicize(linkMsg, italNum);
-
-	var userName = '<b><font color="#2471FF">[Admin] ' + socket.username + '</font></b>: ',
-		message = { id: getID, time: now, user: userName, message: linkMsg },
-		rawMessage = { id: getID, time: now, user: userName, message: msg };
-
-	io.emit('chat message', message);
-	functions.cmdMsg(functions.cmdType.Admin, socket.username + ': ' + msg);
-	functions.saveMsg = new functions.chat({ txtID: getID, msg: message, rawMsg: rawMessage, username: socket.username, deleted: false });
-	functions.saveMsg.save(function (err) { if (err) functions.cmdMsg(functions.cmdType.Error, err); });
 }
 
 /**
@@ -334,30 +307,32 @@ exports.adminMessage = function (msg, socket, io) {
  * @param {admins}
  * @param {rawMsg}
  */
-exports.editMessage = function (msg, socket, admins, rawMsg) {
-	if (socket.username in admins) {
-		var linkMsg = msg; // just so you don't get HTML from the link in the console
+exports.editMessage = function (msg, socket, admins, oldMsg) {
+	if (socket.role != 'Admin' && msg.indexOf('<') == -1) { // check if the user is trying to use html
+		var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
 
-		if (linkMsg.indexOf('http') >= 0) // check to see if there's a link
-			linkMsg = functions.getURL(linkMsg);
+		if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
+			htmlRemoval = functions.getURL(htmlRemoval);
 
-		return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: linkMsg };
+		return { id: oldMsg.txtID, time: oldMsg.date, user: oldMsg.username, message: htmlRemoval, type: oldMsg.msg[0].type };
 	} else {
-		if (msg.indexOf('<') == -1) { // check if the user is trying to use html
-			var noHTML = msg; // just so you don't get HTML from the link in the console
-			if (noHTML.indexOf('http') >= 0) // check to see if there's a link
-				noHTML = functions.getURL(noHTML);
+		var noHTML = msg;
 
-			return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: noHTML };
-		} else {
-			var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
+		if (noHTML.indexOf('http') >= 0) // check to see if there's a link
+			noHTML = functions.getURL(noHTML);
 
-			if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
-				htmlRemoval = functions.getURL(htmlRemoval);
-
-			return { id: rawMsg.id, time: rawMsg.time, user: rawMsg.user, message: htmlRemoval };
-		}
+		return { id: oldMsg.txtID, time: oldMsg.date, user: oldMsg.username, message: noHTML, type: oldMsg.msg[0].type };
 	}
+}
+
+/**
+ * Shows images (needs resizing and a few other things)
+ * @param {text}
+ * @return {string}
+ */
+exports.getImg = function (text) {
+	var link = /(http?:\/\/.*\.(?:png|jpg|gif))/i;
+	return text.replace(link, '<img src="$1">');
 }
 
 /**
@@ -370,6 +345,44 @@ exports.getURL = function (text) {
 	return text.replace(link, '<a href="$1" target="_blank">$1</a>');
 }
 
+/**
+ * Creates a client message
+ * @param {data}
+ */
+exports.clientMsg = function (data) {
+	var getID = functions.guid(),
+		getTime = functions.moment(),
+		getUser = (data.user ? data.user : '[Server]'),
+		raw = (data.raw ? data.raw : data.msg),
+		msg = { id: getID, time: getTime, user: getUser, message: data.msg },
+		rawMessage = { id: getID, time: getTime, user: getUser, message: raw };
+
+	switch (data.type) {
+		case functions.msgType.Server:
+		case functions.msgType.ServerSave: 
+			msg.type = 'Server';
+			break;
+
+		case functions.msgType.UserLeave: msg.type = 'ServerSave';	break;
+		case functions.msgType.ServerLeave: msg.type = 'ServerLeave'; break;
+		case functions.msgType.Admin: msg.type = 'Admin'; break;
+		case functions.msgType.Whiser: msg.type = 'Whisper';
+		default: msg.type = 'User'; break;
+	}
+
+	if (data.type != functions.msgType.Server) {
+		functions.saveMsg = new functions.chat({ txtID: getID, msg: msg, rawMsg: rawMessage, username: getUser, deleted: false });
+		functions.saveMsg.save(function (err) { if (err) if (err) functions.cmdMsg(functions.cmdType.Error, err); });
+	}
+
+	return msg;
+}
+
+/**
+ * Logs a CMD message
+ * @param {type}
+ * @return {text}
+ */
 exports.cmdMsg = function (type, text) {
 	var now = functions.moment().format('LT'),
 		message;
@@ -399,6 +412,11 @@ exports.cmdMsg = function (type, text) {
 	console.log(message);
 }
 
+/**
+ * Returns the user's status
+ * @param {data}
+ * @return {txt}
+ */
 exports.getStatus = function (data) {
 	var txt = '';
 
@@ -452,5 +470,5 @@ exports.updateNicknames = function (io, users, admins, status) {
 	aNames.sort();
 	uNames.sort();
 	allUsers = aNames.concat(uNames);
-	io.sockets.emit('usernames', allUsers);
+	io.emit('usernames', allUsers);
 }

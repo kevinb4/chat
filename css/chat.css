@@ -214,6 +214,21 @@
 	color: #FFF;
 	background: #83afff repeat scroll 0% 0%;
 }
+.time {
+	font-size: 10px;
+}
+.whisper {
+	color: #808080;
+}
+.adminMsg {
+	color: #2471FF;
+}
+.serverMsg {
+	color: #5E97FF;
+}
+.serverLeave {
+	color: #4E7ACC;
+}
 h1 {
 	font-size: 50px;
 	text-align: center;
