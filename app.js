@@ -216,9 +216,8 @@ var stdin = process.stdin;
  */
 stdin.resume();
 stdin.on('data', function (data) {
-	var input = data.toString().trim(); // take out any unecessary spaces
-
-	var args = input.split(' ').splice(1),
+	var input = data.toString().trim(),
+		args = input.split(' ').splice(1),
 		data = { io, users, admins, status };
 
 	if (input == 'shutdown') { // shutdown command
@@ -231,8 +230,8 @@ stdin.on('data', function (data) {
 		commands.cmdBan.run(args, data);
 	} else if (input.indexOf('unban ') === 0) {
 		commands.cmdUnban.run(args, data);
-	} else if (input.indexOf('admin ') === 0) {
-		commands.cmdAdmin.run(args, data);
+	} else if (input.indexOf('role ') === 0) {
+		commands.cmdRole.run(args, data);
 	} else { // anything else that's entered is sent as a server message
 		io.emit('chat message', functions.clientMsg({
 			type: functions.msgType.ServerSave,

@@ -732,7 +732,7 @@ module.exports = {
 	cmdUnban: {
 		aliases: ['ban'],
 		role: ['CMD'],
-			run: function (args, data) {
+		run: function (args, data) {
 			var name = args[0],
 				regex = new RegExp(['^', name, '$'].join(''), 'i'),
 				userCheck = functions.userdb.find({ username: regex });
@@ -755,4 +755,58 @@ module.exports = {
 			});
 		}
 	},
+
+	/**
+	 * [CMD] Changes a user's role
+	 */
+	 cmdRole: {
+	 	aliases: ['role'],
+	 	role: ['CMD'],
+	 	run: function (args, data) {
+	 		var name = args[0],
+	 			role = args[1],
+	 			validRoles = { User: 'User', Admin: 'Admin' };
+
+	 		if (!name || !role) {
+	 			functions.cmdMsg(functions.cmdType.Error, 'You must enter a username and role');
+				return;
+	 		}
+	 		role = role.charAt(0).toUpperCase() + args[1].slice(1);
+	 		if (!(role in validRoles)) {
+	 			functions.cmdMsg(functions.cmdType.Error, 'Role ' + role + ' is not a valid role. Pick from the following: ' + Object.keys(validRoles).toString().replace(/\,/g, ', '));
+				return;
+	 		}
+
+			var regex = new RegExp(['^', name, '$'].join(''), 'i'),
+				userCheck = functions.userdb.find({ username: regex });
+
+			userCheck.sort().limit(1).exec(function (err, result) {
+				if (err) {
+					functions.cmdMsg(functions.cmdType.Error, err);
+					return;
+				}
+				if (result[0].length < 1) {
+					functions.cmdMsg(functions.cmdType.Error, '"' + name + '" was not found');
+					return;
+				}
+				if (result[0].role == role) {
+					functions.cmdMsg(functions.cmdType.Error, '"' + name + '" is already a ' + result[0].role);
+					return;
+				}
+				if (role == 'User')
+					if (name in data.admins)
+						delete data.admins[name];
+				if (role == 'Admin')
+					data.admins[name]++;
+
+				functions.updateNicknames(data.io, data.users, data.admins, data.status);
+				functions.userdb.update({ username: name }, { role: role }, function (err) { if (err) { functions.cmdMsg(functions.cmdType.Error, err); return; } });
+				functions.cmdMsg(functions.cmdType.Normal, name + '\'s role has been changed to ' + role);
+				data.io.emit('chat message', functions.clientMsg({
+					type: functions.msgType.ServerSave,
+					msg: name + '\'s role has been changed to ' + role
+				}));
+			});
+	 	}
+	 }
 }
