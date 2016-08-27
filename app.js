@@ -38,7 +38,10 @@ io.on('connection', function (socket) {
 	var query = functions.chat.find({ deleted: false });
 
 	query.sort('-date').limit(50).exec(function (err, msgs) { // load the last 50 messages in order
-		if (err) functions.cmdMsg(functions.cmdType.Error, err);
+		if (err) {
+			functions.cmdMsg(functions.cmdType.Error, err);
+			return;
+		}
 		var msgArray = {};
 		for (var i = 0; i < msgs.length; i++)
 			msgArray[i] = msgs[i].msg[0];
@@ -117,7 +120,10 @@ io.on('connection', function (socket) {
 		var query = functions.chat.find({ username: socket.username });
 
 		query.sort('-date').limit(1).exec(function (err, msg) {
-			if (err) functions.cmdMsg(functions.cmdType.Error, err);
+			if (err) {
+				functions.cmdMsg(functions.cmdType.Error, err);
+				return;
+			}
 			if (data) {
 				var fullMsg = functions.editMessage(data, socket, admins, msg[0]);
 
@@ -188,22 +194,24 @@ io.on('connection', function (socket) {
 	 * @param {msg}
 	 */
 	socket.on('chat message', function (msg) {
-		if (msg != '') { // check to make sure a message was entered
-			if (socket.username != '') { // check to make sure the client has a username
-				if (msg.indexOf('/') == 0) {
-					var name = msg.substring((msg.indexOf(' ') == -1 ? msg.length : msg.indexOf(' ')), 1).toLowerCase(),
-						args = msg.split(' ').splice(1),
-						cmds = Object.keys(commands).map(function (key) {return commands[key]}),
-						data = { socket, io, users, admins, status };
+		if (!msg) { // check to make sure a message was entered
+			return;
+		}
+		if (!socket.username) { // check to make sure the client has a username
+			return;
+		}
+		if (msg.indexOf('/') == 0) {
+			var name = msg.substring((msg.indexOf(' ') == -1 ? msg.length : msg.indexOf(' ')), 1).toLowerCase(),
+				args = msg.split(' ').splice(1),
+				cmds = Object.keys(commands).map(function (key) {return commands[key]}),
+				data = { socket, io, users, admins, status };
 
-					for (var i = 0; i < cmds.length; i++)
-						if (cmds[i].aliases.indexOf(name) != -1)
-							if (cmds[i].role.indexOf(socket.role) != -1)
-								cmds[i].run(args, data);
-				} else {
-					functions.message(msg, socket, io, users);
-				}
-			}
+			for (var i = 0; i < cmds.length; i++)
+				if (cmds[i].aliases.indexOf(name) != -1)
+					if (cmds[i].role.indexOf(socket.role) != -1)
+						cmds[i].run(args, data);
+		} else {
+			functions.message(msg, socket, io, users);
 		}
 	});
 });

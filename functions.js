@@ -26,6 +26,7 @@ exports.userdb = functions.mongoose.model('userdb', userschema);
  */
 exports.register = function (registerData, callback) {
 	var dataUsername = registerData.username, dataPassword = registerData.password,
+		errorMsg = 'An error has occoured, please contact an administrator',
 		saveUser,
 		user = /^[\w]{1,15}$/,
 		userCheck = functions.userdb.find({ username: dataUsername }); // check to make sure the username doesn't already exist
@@ -33,34 +34,36 @@ exports.register = function (registerData, callback) {
 	userCheck.sort().limit(1).exec(function (err, registerData) {
 		if (err) {
 			functions.cmdMsg(functions.cmdType.Error, err);
-			callback('An error has occoured, please contact an administrator');
-		} else {
-			if (registerData.length == 1) {
-				callback('That username is already taken');
-			} else if (!user.test(dataUsername)) {
-				callback('Your username contains invalid characters or is too long. Your username can only contain letters and numbers (1-15 characters long)');
-			} else {
-				bcrypt.genSalt(10, function (err, salt) {
-					bcrypt.hash(dataPassword, salt, null, function (errormsg, hash) {
-						/*if (error) { // it seems to always return 'undefined', even though the hash was created successfully
-							functions.cmdMsg(functions.cmdType.Error, ' ..at hash! ' + hash);
-							callback('An error has occoured, please contact an administrator');	
-						} else {*/
-							saveUser = new functions.userdb({ username: dataUsername, password: hash, role: 'User', ban: false, banReason: '', optSound: true, optMessageId: false });
-							saveUser.save(function (err) {
-								if (err) {
-									functions.cmdMsg(functions.cmdType.Error, err);
-									callback('An Error has occoured, please contact an administrator');
-								} else {
-									callback('success');
-									functions.cmdMsg(functions.cmdType.Normal, 'New user: ' + dataUsername);
-								}
-							});
-					//	}
-					});
-				});
-			}
+			callback(errorMsg);
+			return;
 		}
+		if (registerData.length == 1) {
+			callback('That username is already taken');
+			return;
+		}
+		if (!user.test(dataUsername)) {
+			callback('Your username contains invalid characters or is too long. Your username can only contain letters and numbers (1-15 characters long)');
+			return;
+		}
+		bcrypt.genSalt(10, function (err, salt) {
+			bcrypt.hash(dataPassword, salt, null, function (err, hash) {
+				if (err) {
+					functions.cmdMsg(functions.cmdType.Error, ' ..at hash! ' + hash);
+					callback(errorMsg);	
+					return;
+				}
+				saveUser = new functions.userdb({ username: dataUsername, password: hash, role: 'User', ban: false, banReason: '', optSound: true, optMessageId: false });
+				saveUser.save(function (err) {
+					if (err) {
+						functions.cmdMsg(functions.cmdType.Error, err);
+						callback(errorMsg);
+						return;
+					}
+					callback('success');
+					functions.cmdMsg(functions.cmdType.Normal, 'New user: ' + dataUsername);
+				});
+			});
+		});
 	});
 }
 
@@ -83,47 +86,49 @@ exports.login = function (data, callback, socket, io, admins, users, status) {
 		if (err) {
 			functions.cmdMsg(functions.cmdType.Error, err);
 			callback('An error has occoured, please contact an administrator');
-		} else {
-			if (result.length == 1) {
-				var dbUsername = result[0].username, dbPassword = result[0].password, dbRole = result[0].role,
-					dbBan = result[0].ban, dbbanReason = result[0].banReason, dbOptSound = result[0].optSound;
-
-				bcrypt.compare(loginPassword, dbPassword, function (errormsg, res) {
-					if (err) {
-						functions.cmdMsg(functions.cmdType.Error, err);
-						callback('An error has occoured, please contact an administrator');
-					} else {
-						if (res) {
-							if (dbBan === true) {
-								callback('Your account is banned\r\nReason: ' + dbbanReason);
-							} else if (dbUsername in users) {
-								callback('You are already logged in');
-							} else {
-								socket.role = dbRole;
-								socket.username = dbUsername;
-								users[socket.username] = socket;
-
-								if (dbRole == 'Admin')
-									admins[socket.username]++;
-
-								functions.updateNicknames(io, users, admins, status);
-								functions.cmdMsg(functions.cmdType.Normal, 'User Joined: ' + socket.username);
-								users[socket.username].emit('settings', dbOptSound);
-								io.emit('chat message', functions.clientMsg({
-									type: functions.msgType.ServerSave,
-									msg: dbUsername + ' has joined'
-								}));
-								callback('success');
-							}
-						} else {
-							callback('Your password is incorrect');
-						}
-					}
-				});
-			} else {
-				callback('You have entered an invalid username and password combo');
-			}
+			return;
 		}
+		if (result.length != 1) {
+			callback('You have entered an invalid username and password combo');
+			return;
+		}
+		var dbUsername = result[0].username, dbPassword = result[0].password, dbRole = result[0].role,
+			dbBan = result[0].ban, dbbanReason = result[0].banReason, dbOptSound = result[0].optSound;
+
+		bcrypt.compare(loginPassword, dbPassword, function (errormsg, res) {
+			if (err) {
+				functions.cmdMsg(functions.cmdType.Error, err);
+				callback('An error has occoured, please contact an administrator');
+				return;
+			}
+			if (!res) {
+				callback('Your password is incorrect');
+				return;
+			}
+			if (dbBan === true) {
+				callback('Your account is banned\r\nReason: ' + dbbanReason);
+				return;
+			}
+			if (dbUsername in users) {
+				callback('You are already logged in');
+				return;
+			}
+			socket.role = dbRole;
+			socket.username = dbUsername;
+			users[socket.username] = socket;
+
+			if (dbRole == 'Admin')
+				admins[socket.username]++;
+
+			functions.updateNicknames(io, users, admins, status);
+			functions.cmdMsg(functions.cmdType.Normal, 'User Joined: ' + socket.username);
+			users[socket.username].emit('settings', dbOptSound);
+			io.emit('chat message', functions.clientMsg({
+				type: functions.msgType.ServerSave,
+				msg: dbUsername + ' has joined'
+			}));
+			callback('success');
+		});
 	});
 }
 
@@ -243,60 +248,60 @@ exports.message = function (msg, socket, io, users) {
 	userCheck.sort().limit(1).exec(function (err, result) {
 		if (err) {
 			functions.cmdMsg(functions.cmdType.Error, err);
-		} else {
-			var muteTime;
-			try {
-				muteTime = functions.moment(result[0].mute, 'YYYY-MM-DD HH:mm');
-			} catch (err) {
-				muteTime = functions.moment(now, 'YYYY-MM-DD HH:mm');
-			}
-			if (socket.role != 'Admin' && muteTime > now) {
-				users[socket.username].emit('chat message', functions.clientMsg({
-					type: functions.msgType.Server,
-					msg: 'You are muted - expires <i>' + muteTime.fromNow() + '</i>'
-				}));
-			} else {
-				var finalMsg;
-
-				if (socket.role != 'Admin' && msg.indexOf('<') != -1) { // check if the user is trying to use html
-					var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
-
-					//if (htmlRemoval.match(/(http?:\/\/.*\.(?:png|jpg|jpeg|gif))/i))
-					//	htmlRemoval = functions.getImg(htmlRemoval);
-					if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
-						htmlRemoval = functions.getURL(htmlRemoval);
-
-					finalMsg = htmlRemoval;
-				} else {
-					var urlMsg = msg; // just so you don't get HTML from the link in the console
-					
-					//if (urlMsg.match(/(http?:\/\/.*\.(?:png|jpg|gif))/i))
-					//	urlMsg = functions.getImg(urlMsg);
-					if (urlMsg.indexOf('http') >= 0) // check to see if there's a link
-						urlMsg = functions.getURL(urlMsg);
-
-					finalMsg = urlMsg;
-				}
-
-				var astNum = (msg.match(/\*/g) || []).length,
-					italNum = (msg.match(/\_/g) || []).length,
-					serverType = (socket.role in functions.cmdType ? socket.role : functions.cmdType.User),
-					clientType = (socket.role in functions.msgType ? socket.role : functions.msgType.User);
-
-				if (astNum > 1)
-					finalMsg = functions.bold(finalMsg, astNum);
-				if (italNum > 1)
-					finalMsg = functions.italicize(finalMsg, italNum);
-
-				functions.cmdMsg(serverType, socket.username + ': ' + msg);
-				io.emit('chat message', functions.clientMsg({
-					user: socket.username,
-					type: clientType,
-					raw: msg,
-					msg: finalMsg
-				}));
-			}
+			return;
 		}
+		var muteTime;
+		try {
+			muteTime = functions.moment(result[0].mute, 'YYYY-MM-DD HH:mm');
+		} catch (err) {
+			muteTime = functions.moment(now, 'YYYY-MM-DD HH:mm');
+		}
+		if (socket.role != 'Admin' && muteTime > now) {
+			users[socket.username].emit('chat message', functions.clientMsg({
+				type: functions.msgType.Server,
+				msg: 'You are muted - expires <i>' + muteTime.fromNow() + '</i>'
+			}));
+			return;
+		}
+		var finalMsg;
+
+		if (socket.role != 'Admin' && msg.indexOf('<') != -1) { // check if the user is trying to use html
+			var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
+
+			//if (htmlRemoval.match(/(http?:\/\/.*\.(?:png|jpg|jpeg|gif))/i))
+			//	htmlRemoval = functions.getImg(htmlRemoval);
+			if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
+				htmlRemoval = functions.getURL(htmlRemoval);
+
+			finalMsg = htmlRemoval;
+		} else {
+			var urlMsg = msg; // just so you don't get HTML from the link in the console
+			
+			//if (urlMsg.match(/(http?:\/\/.*\.(?:png|jpg|gif))/i))
+			//	urlMsg = functions.getImg(urlMsg);
+			if (urlMsg.indexOf('http') >= 0) // check to see if there's a link
+				urlMsg = functions.getURL(urlMsg);
+
+			finalMsg = urlMsg;
+		}
+
+		var astNum = (msg.match(/\*/g) || []).length,
+			italNum = (msg.match(/\_/g) || []).length,
+			serverType = (socket.role in functions.cmdType ? socket.role : functions.cmdType.User),
+			clientType = (socket.role in functions.msgType ? socket.role : functions.msgType.User);
+
+		if (astNum > 1)
+			finalMsg = functions.bold(finalMsg, astNum);
+		if (italNum > 1)
+			finalMsg = functions.italicize(finalMsg, italNum);
+
+		functions.cmdMsg(serverType, socket.username + ': ' + msg);
+		io.emit('chat message', functions.clientMsg({
+			user: socket.username,
+			type: clientType,
+			raw: msg,
+			msg: finalMsg
+		}));
 	});
 }
 
