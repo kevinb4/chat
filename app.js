@@ -14,6 +14,7 @@ var express = require('express'),
 	status = {};
 
 functions.cmdMsg(functions.cmdType.Normal, 'listening @ localhost:' + port);
+functions.cmdMsg(functions.cmdType.Normal, Object.keys(functions.emotes).length + ' emote(s) loaded');
 
 functions.mongoose.connect('mongodb://127.0.0.1/chat', function (err) {
 	if (err)
@@ -152,7 +153,7 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('idle', function () {
 		if (!(socket.username in status)) {
-			status[socket.username] = {status: 'idle'};
+			status[socket.username] = { status: 'idle' };
 			functions.updateNicknames(io, users, admins, status);
 		}
 	});
@@ -162,7 +163,7 @@ io.on('connection', function (socket) {
 	 */
 	socket.on('typing', function () {
 		if (!(socket.username in status)) {
-			status[socket.username] = {status: 'typing'};
+			status[socket.username] = { status: 'typing' };
 			functions.updateNicknames(io, users, admins, status);
 		}
 	});
@@ -216,12 +217,12 @@ io.on('connection', function (socket) {
 	});
 });
 
-var stdin = process.stdin;
-
 /**
  * Handles CMD/Server input
  * @param {data}
  */
+var stdin = process.stdin;
+
 stdin.resume();
 stdin.on('data', function (data) {
 	var input = data.toString().trim(),

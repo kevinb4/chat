@@ -55,7 +55,7 @@ This isn't required, but I thought I would leave this here. It's very useful for
 - [x] Add a command to delete a set number of any user's messages
 - [x] Add a command to delete messages with specific text
 - [x] Add an afk command
-- [ ] Add custom emotes
+- [x] Add custom emotes
 - [ ] Write a client in VB.net
 - [ ] Write an andriod app
 

@@ -730,7 +730,7 @@ module.exports = {
 	 * [CMD] Unbans a user
 	 */
 	cmdUnban: {
-		aliases: ['ban'],
+		aliases: ['unban'],
 		role: ['CMD'],
 		run: function (args, data) {
 			var name = args[0],

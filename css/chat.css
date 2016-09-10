@@ -90,7 +90,7 @@
 	white-space: -moz-pre-wrap;
 	white-space: -pre-wrap;
 	white-space: -o-pre-wrap;
-	word-wrap: break-word;
+	word-break: break-all
 }
 #reply-box {
 	height: 40px;
@@ -213,6 +213,10 @@
 .registerSubmit:hover {
 	color: #FFF;
 	background: #83afff repeat scroll 0% 0%;
+}
+.img {
+	max-height: 100%;
+	max-width: 200px;
 }
 .time {
 	font-size: 10px;

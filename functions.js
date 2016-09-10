@@ -184,12 +184,11 @@ exports.bold = function (msg, count) {
 		track -= 1;
 	}
 
-	if (result == 'even') {
+	if (result == 'even')
 		msg = msg.replace(/\*/g, ''); // remove all *
-	} else {
+	else
 		for (var i = (count / 2) - 1; i > -1; i--)
 			msg = msg.replace('*', '').replace('*', ''); // remove all but the one lone *
-	}
 
 	return msg;
 }
@@ -222,11 +221,45 @@ exports.italicize = function (msg, count) {
 		track -= 1;
 	}
 
-	if (result == 'even') {
+	if (result == 'even')
 		msg = msg.replace(/\_/g, ''); // remove all _
-	} else {
+	else
 		for (var i = (count / 2) - 1; i > -1; i--)
 			msg = msg.replace('_', '').replace('_', ''); // remove all but the one lone _
+
+	return msg;
+}
+
+/**
+ * Adds emotes to messages
+ * @param {msg}
+ * @param {count}
+ * @return {string}
+ */
+exports.emote = function (msg, count) {
+	var result = (count % 2 == 0) ? 'even' : 'odd',
+		indices = [];
+
+	for (var i = 0; i < msg.length; i++)
+		if (msg[i] === ':')
+			indices.push(i); // add all the indices to an array
+
+	var names = [];
+	for (var i = 0; i < count; i++) {
+		var loc1 = indices[i],
+			loc2 = indices[i + 1],
+			name = msg.substring(loc1 + 1, loc2);
+
+		if (name) // just so we're not adding null entries
+			names.push(name);
+	}
+
+	for (var i = 0; i < names.length; i++) {
+		var regex = new RegExp([':', names[i], ':'].join(''), 'g');
+
+		// we're adding a non-width character "&#8203;" so it doesn't get replaced
+		if ((names[i].toLowerCase() in functions.emotes) && msg.indexOf(names[i]) != -1)
+			msg = msg.replace(regex, '<img src="' + functions.emotes[names[i]] + '" title=":&#8203;' + names[i] + '&#8203;:" style="display: inline-block; vertical-align: top;" />');
 	}
 
 	return msg;
@@ -268,18 +301,18 @@ exports.message = function (msg, socket, io, users) {
 		if (socket.role != 'Admin' && msg.indexOf('<') != -1) { // check if the user is trying to use html
 			var htmlRemoval = msg.replace(/</g, '&lt;'); // changes the character to show as a <, but will not work with HTML
 
-			//if (htmlRemoval.match(/(http?:\/\/.*\.(?:png|jpg|jpeg|gif))/i))
-			//	htmlRemoval = functions.getImg(htmlRemoval);
-			if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
+			if (htmlRemoval.match(/(http?:\/\/.*\.(?:png|jpg|jpeg|gif))/i))
+				htmlRemoval = functions.getImg(htmlRemoval);
+			else if (htmlRemoval.indexOf('http') >= 0) // check to see if there's a link
 				htmlRemoval = functions.getURL(htmlRemoval);
 
 			finalMsg = htmlRemoval;
 		} else {
 			var urlMsg = msg; // just so you don't get HTML from the link in the console
 			
-			//if (urlMsg.match(/(http?:\/\/.*\.(?:png|jpg|gif))/i))
-			//	urlMsg = functions.getImg(urlMsg);
-			if (urlMsg.indexOf('http') >= 0) // check to see if there's a link
+			if (urlMsg.match(/(http?:\/\/.*\.(?:png|jpg|gif))/i))
+				urlMsg = functions.getImg(urlMsg);
+			else if (urlMsg.indexOf('http') >= 0) // check to see if there's a link
 				urlMsg = functions.getURL(urlMsg);
 
 			finalMsg = urlMsg;
@@ -287,6 +320,7 @@ exports.message = function (msg, socket, io, users) {
 
 		var astNum = (msg.match(/\*/g) || []).length,
 			italNum = (msg.match(/\_/g) || []).length,
+			emoteNum = (msg.match(/\:/g) || []).length,
 			serverType = (socket.role in functions.cmdType ? socket.role : functions.cmdType.User),
 			clientType = (socket.role in functions.msgType ? socket.role : functions.msgType.User);
 
@@ -294,6 +328,8 @@ exports.message = function (msg, socket, io, users) {
 			finalMsg = functions.bold(finalMsg, astNum);
 		if (italNum > 1)
 			finalMsg = functions.italicize(finalMsg, italNum);
+		if (emoteNum > 1)
+			finalMsg = functions.emote(finalMsg, emoteNum);
 
 		functions.cmdMsg(serverType, socket.username + ': ' + msg);
 		io.emit('chat message', functions.clientMsg({
@@ -337,7 +373,7 @@ exports.editMessage = function (msg, socket, admins, oldMsg) {
  */
 exports.getImg = function (text) {
 	var link = /(http?:\/\/.*\.(?:png|jpg|gif))/i;
-	return text.replace(link, '<img src="$1">');
+	return text.replace(link, '<br><a href="$1" target="_blank"><img src="$1" class="img"></a>');
 }
 
 /**
@@ -477,3 +513,28 @@ exports.updateNicknames = function (io, users, admins, status) {
 	allUsers = aNames.concat(uNames);
 	io.emit('usernames', allUsers);
 }
+
+/**
+ * Loads all the emotes in /images/emotes/
+ * @param {dir}
+ * @return {results}
+ */
+exports.getEmotes = function(dir) {
+	var filesystem = require('fs');
+	var results = {};
+
+	filesystem.readdirSync(dir).forEach(function(file) {
+		dir = dir.replace(/\\/g, '/');
+		var stat = filesystem.statSync(dir + file),
+			loc = file.indexOf('.');
+
+		if (stat && stat.isDirectory())
+			results = results.concat(_getAllFilesFromFolder(file))
+		else
+			results[file.substring(loc, 0).toLowerCase()] = (dir.slice(dir.indexOf('chat') + 4, dir.length) + file);
+	});
+
+	return results;
+}
+
+exports.emotes = functions.getEmotes(__dirname + '/images/emotes/');
