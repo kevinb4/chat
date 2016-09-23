@@ -231,6 +231,43 @@ exports.italicize = function (msg, count) {
 }
 
 /**
+ * Adds inline code blocks
+ * @param {msg}
+ * @param {count}
+ * @return {string}
+ */
+exports.code = function (msg, count) {
+	var result = (count % 2 == 0) ? 'even' : 'odd',
+		indices = [];
+
+	for (var i = 0; i < msg.length; i++)
+		if (msg[i] === '`')
+			indices.push(i);
+
+	if (result == 'odd')
+		count -= 1;
+
+	var track = (count / 2) - 1;
+	for (var i = (count / 2) - 1; i > -1; i--) {
+		var code1 = (indices[(i) + track]),
+			code2 = (indices[(i + 1) + track]);
+
+		// inserting these backwards means less adding/subtracting indices
+		msg = functions.insert(msg, code2, '</code>');
+		msg = functions.insert(msg, code1, '<code>');
+		track -= 1;
+	}
+
+	if (result == 'even')
+		msg = msg.replace(/\`/g, ''); // remove all `
+	else
+		for (var i = (count / 2) - 1; i > -1; i--)
+			msg = msg.replace('`', '').replace('`', ''); // remove all but the one lone `
+
+	return msg;
+}
+
+/**
  * Adds emotes to messages
  * @param {msg}
  * @param {count}
@@ -320,6 +357,7 @@ exports.message = function (msg, socket, io, users) {
 
 		var astNum = (msg.match(/\*/g) || []).length,
 			italNum = (msg.match(/\_/g) || []).length,
+			codeNum = (msg.match(/\`/g) || []).length,
 			emoteNum = (msg.match(/\:/g) || []).length,
 			serverType = (socket.role in functions.cmdType ? socket.role : functions.cmdType.User),
 			clientType = (socket.role in functions.msgType ? socket.role : functions.msgType.User);
@@ -328,6 +366,8 @@ exports.message = function (msg, socket, io, users) {
 			finalMsg = functions.bold(finalMsg, astNum);
 		if (italNum > 1)
 			finalMsg = functions.italicize(finalMsg, italNum);
+		if (codeNum > 1)
+			finalMsg = functions.code(finalMsg, codeNum);
 		if (emoteNum > 1)
 			finalMsg = functions.emote(finalMsg, emoteNum);
 

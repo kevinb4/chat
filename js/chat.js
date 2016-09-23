@@ -3,31 +3,11 @@
  * @author xCryptic (Github)
  */
 
-var socket = io(),
-	username = $('#username'),
-	btnLogin = $('#btnLogin'),
-	btnRegister = $('#btnRegister'),
-	btnSubmit = $('#btnSubmit'),
-	regUsername = $('#regUsername'),
-	regPassword = $('#regPassword'),
-	regpasswordConfirm = $('#regpasswordConfirm'),
-	txtUsername = $('#username'),
-	txtPassword = $('#password'),
-	loginForm = $('#login'),
-	registerForm = $('#registerForm'),
-	chat = $('#chat'),
-	chatbox = $('#chat-box'),
-	reply = $('#reply'),
-	textarea = $('#chat-textarea'),
-	send = $('#send'),
-	users = $('#online-users'),
-	options = $('#options'),
-	btnOptions = $('#btnOptions'),
-	btnSave = $('#btnSave'),
-	optionslist = $('#options_list'),
-	checkbox1 = document.getElementById('checkbox1'),
-	isEdit = false,
-	audio = new Audio('mp3/alert.mp3');
+var socket = io(), username = $('#username'), btnLogin = $('#btnLogin'), btnRegister = $('#btnRegister'), btnSubmit = $('#btnSubmit'),
+	regUsername = $('#regUsername'), regPassword = $('#regPassword'), regpasswordConfirm = $('#regpasswordConfirm'), txtUsername = $('#username'), txtPassword = $('#password'),
+	loginForm = $('#login'), registerForm = $('#registerForm'), chat = $('#chat'), chatbox = $('#chat-box'), reply = $('#reply'),
+	textarea = $('#chat-textarea'), send = $('#send'), users = $('#online-users'), options = $('#options'), btnOptions = $('#btnOptions'),
+	btnSave = $('#btnSave'), optionslist = $('#options_list'), checkbox1 = document.getElementById('checkbox1'), isEdit = false, audio = new Audio('mp3/alert.mp3');
 
 /**
  * Handles logging in
@@ -121,7 +101,7 @@ function message (data) {
 		default: classType = ''; break;
 	}
 
-	return '<span id="' + data.id + '"><span id="' + data.id + '" class="time" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" onclick="clickHandler(this);">' + localTime + '</span> <span class="' + classType + '"><b>' + data.user + (classType.contains('server') ? '</b> ' + data.message + '</span>' : '</b></span>: ' + data.message) + '<br></span>';
+	return '<span id="' + data.id + '"><span id="' + data.id + '" class="time" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" onclick="clickHandler(this);">' + localTime + '</span> <span class="' + classType + '"><b>' + data.user + (data.type.toLowerCase().indexOf('server') != -1 ? '</b> ' + data.message + '</span>' : '</b></span> ' + data.message) + '<br></span>';
 }
 
 /**
@@ -166,23 +146,25 @@ btnRegister.click(function () {
 btnSubmit.click(function () {
 	var passLen = regPassword.val();
 
-	if (!regPassword.val() == regpasswordConfirm.val()) {
+	if (regPassword.val() != regpasswordConfirm.val()) {
 		alert('Your passwords do not match');
-	} else if (passLen.length < 2 || passLen.length > 20) {
-		alert('Your password must be 3-20 characters long');
-	} else {
-		var registerDetails = { username: regUsername.val(), password: regPassword.val() }
-		socket.emit('register', registerDetails, function (data) {
-			if (data == 'success') {
-				alert('Signup successful! You may now login');
-				registerForm.fadeOut('slow', function () {
-					loginForm.fadeIn('slow', function () { });
-				});
-			} else {
-				alert(data);
-			}
-		});
+		return;
 	}
+	if (passLen.length < 2 || passLen.length > 20) {
+		alert('Your password must be 3-20 characters long');
+		return;
+	}
+	var registerDetails = { username: regUsername.val(), password: regPassword.val() }
+	socket.emit('register', registerDetails, function (data) {
+		if (data == 'success') {
+			alert('Signup successful! You may now login');
+			registerForm.fadeOut('slow', function () {
+				loginForm.fadeIn('slow', function () { });
+			});
+		} else {
+			alert(data);
+		}
+	});
 });
 
 /**
@@ -293,13 +275,11 @@ ifvisible.on('wakeup', function () {
 	socket.emit('ridle');
 });
 
+/**
+ * For testing
+ */
 socket.on('console', function (data) {
 	console.log(data)
-});
-
-socket.on('userdata', function (userdata) {
-	admins = userdata.admins;
-	users = userdata.users;
 });
 
 /**
@@ -341,7 +321,7 @@ socket.on('del msg id', function (id) {
 socket.on('rcv prev msg', function (msg) {
 	if (!(msg == null)) {
 		isEdit = true;
-		reply.val(msg);
+		reply.val(msg[0].message);
 	}
 });
 

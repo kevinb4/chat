@@ -1,5 +1,11 @@
-* {
-	font-family: "Century Gothic";
+body, input, textarea {
+	font-family: "Century Gothic" !important;
+}
+code {
+	background-color: #ddd;
+	padding: 2px;
+	box-shadow: 0px 0px 1px 0px #555 inset;
+	border-radius: 3px;
 }
 #body {
 	margin: auto;
