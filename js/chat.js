@@ -7,7 +7,7 @@ var socket = io(), username = $('#username'), btnLogin = $('#btnLogin'), btnRegi
 	regUsername = $('#regUsername'), regPassword = $('#regPassword'), regpasswordConfirm = $('#regpasswordConfirm'), txtUsername = $('#username'), txtPassword = $('#password'),
 	loginForm = $('#login'), registerForm = $('#registerForm'), chat = $('#chat'), chatbox = $('#chat-box'), reply = $('#reply'),
 	textarea = $('#chat-textarea'), send = $('#send'), users = $('#online-users'), options = $('#options'), btnOptions = $('#btnOptions'),
-	btnSave = $('#btnSave'), optionslist = $('#options_list'), checkbox1 = document.getElementById('checkbox1'), isEdit = false, audio = new Audio('mp3/alert.mp3');
+	btnSave = $('#btnSave'), optionslist = $('#options_list'), checkbox1 = document.getElementById('checkbox1'), checkbox2 = document.getElementById('checkbox2'), isEdit = false, audio = new Audio('mp3/alert.mp3');
 
 /**
  * Handles logging in
@@ -101,7 +101,7 @@ function message (data) {
 		default: classType = ''; break;
 	}
 
-	return '<span id="' + data.id + '"><span id="' + data.id + '" class="time" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" onclick="clickHandler(this);">' + localTime + '</span> <span class="' + classType + '"><b>' + data.user + (data.type.toLowerCase().indexOf('server') != -1 ? '</b> ' + data.message + '</span>' : '</b></span> ' + data.message) + '<br></span>';
+	return '<span id="' + data.id + '"><span class="time" data-toggle="tooltip" data-placement="auto-right" title="' + localDate + '" onclick="clickHandler(this.parentElement);">' + localTime + '</span> <span class="' + classType + '"><b>' + data.user + (data.type.toLowerCase().indexOf('server') != -1 ? '</b> <span id="msg">' + data.message + '</span></span>' : '</b></span> <span id="msg">' + data.message) + '<span><br></span>';
 }
 
 /**
@@ -180,10 +180,12 @@ btnOptions.click(function () {
  * Handles clicking the save button
  */
 btnSave.click(function () {
+	var optSound = { cb1: false, cb2: false };
+
 	if (checkbox1.checked)
-		optSound = true;
-	else
-		optSound = false;
+		optSound.cb1 = true;
+	if (checkbox2.checked)
+		optSound.cb2 = true;
 
 	socket.emit('settings saved', optSound);
 	options.fadeOut('slow', function () {
@@ -297,12 +299,20 @@ socket.on('chat message', function (msg) {
 	}
 });
 
+socket.on('mention', function (data) {
+	if (checkbox2.checked)
+		audio.play();
+
+	document.getElementById(data).children[2].style = 'background: #eee; padding: 1.7px;';
+});
+
 /**
  * Handles saving settings
  * @param {data}
  */
 socket.on('settings', function (data) {
-	checkbox1.checked = data;
+	checkbox1.checked = data.cb1;
+	checkbox2.checked = data.cb2;
 });
 
 /**

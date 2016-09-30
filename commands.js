@@ -799,14 +799,16 @@ module.exports = {
 				if (role == 'Admin')
 					data.admins[name]++;
 
+				data.users[name].role = role;
+
 				functions.updateNicknames(data.io, data.users, data.admins, data.status);
 				functions.userdb.update({ username: name }, { role: role }, function (err) { if (err) { functions.cmdMsg(functions.cmdType.Error, err); return; } });
-				functions.cmdMsg(functions.cmdType.Normal, name + '\'s role has been changed to ' + role);
+				functions.cmdMsg(functions.cmdType.Normal, '"' + name + '"\'s role has been changed to ' + role);
 				data.io.emit('chat message', functions.clientMsg({
 					type: functions.msgType.ServerSave,
-					msg: name + '\'s role has been changed to ' + role
+					msg: '<b>' + name + '</b>\'s role has been changed to ' + role
 				}));
 			});
-	 	}
-	 }
+		}
+	}
 }

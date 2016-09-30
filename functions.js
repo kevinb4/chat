@@ -14,7 +14,7 @@ exports.cmdType = { Error: 'Error', Normal: 'Normal', User: 'User', Admin: 'Admi
 exports.msgType = { User: 'User', Whisper: 'Whisper', Admin: 'Admin', Server: 'Server', ServerSave: 'ServerSave', ServerLeave: 'ServerLeave' };
 
 var schema = functions.mongoose.Schema({ txtID: String, msg: Array, rawMsg: Array, deleted: Boolean, username: String, type: String, date: { type: Date, default: Date.now } }),
-	userschema = functions.mongoose.Schema({ uid: Number, username: String, password: String, role: String, mute: String, ban: Boolean, banReason: String, options: { optSound: Boolean }});
+	userschema = functions.mongoose.Schema({ uid: Number, username: String, password: String, role: String, mute: String, ban: Boolean, banReason: String, options: Array });
 
 exports.chat = functions.mongoose.model('message', schema);
 exports.userdb = functions.mongoose.model('userdb', userschema);
@@ -93,7 +93,7 @@ exports.login = function (data, callback, socket, io, admins, users, status) {
 			return;
 		}
 		var dbUsername = result[0].username, dbPassword = result[0].password, dbRole = result[0].role,
-			dbBan = result[0].ban, dbbanReason = result[0].banReason, dbOptSound = result[0].optSound;
+			dbBan = result[0].ban, dbbanReason = result[0].banReason, dbOptions = result[0].options;
 
 		bcrypt.compare(loginPassword, dbPassword, function (errormsg, res) {
 			if (err) {
@@ -122,7 +122,7 @@ exports.login = function (data, callback, socket, io, admins, users, status) {
 
 			functions.updateNicknames(io, users, admins, status);
 			functions.cmdMsg(functions.cmdType.Normal, 'User Joined: ' + socket.username);
-			users[socket.username].emit('settings', dbOptSound);
+			users[socket.username].emit('settings', dbOptions);
 			io.emit('chat message', functions.clientMsg({
 				type: functions.msgType.ServerSave,
 				msg: dbUsername + ' has joined'
@@ -373,11 +373,20 @@ exports.message = function (msg, socket, io, users) {
 
 		functions.cmdMsg(serverType, socket.username + ': ' + msg);
 		io.emit('chat message', functions.clientMsg({
+			id: getID,
 			user: socket.username,
 			type: clientType,
 			raw: msg,
 			msg: finalMsg
 		}));
+
+		if ((msg.match(/\@/g) || [])) {
+			var str = msg.substr(msg.indexOf('@') + 1, 15);
+
+			for (names in users)
+				if (str.includes(names))
+					users[names].emit('mention', getID);
+		}
 	});
 }
 
@@ -431,7 +440,7 @@ exports.getURL = function (text) {
  * @param {data}
  */
 exports.clientMsg = function (data) {
-	var getID = functions.guid(),
+	var getID = (data.id ? data.id : functions.guid()),
 		getTime = functions.moment(),
 		getUser = (data.user ? data.user : '[Server]'),
 		raw = (data.raw ? data.raw : data.msg),

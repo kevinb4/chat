@@ -102,13 +102,13 @@ io.on('connection', function (socket) {
 	 * @param {data} The data recieved from the client
 	 */
 	socket.on('settings saved', function (data) {
-		var query = userdb.find({ username: socket.username });
+		var query = functions.userdb.find({ username: socket.username });
 
 		query.sort().limit(1).exec(function (err, result) {
 			if (err)
 				functions.cmdMsg(functions.cmdType.Error, err);
 			else
-				userdb.update({ username: socket.username }, { optSound: data }, function (err) { if (err) return functions.cmdMsg(functions.cmdType.Error, err); });
+				functions.userdb.update({ username: socket.username }, { optSound: data }, function (err) { if (err) return functions.cmdMsg(functions.cmdType.Error, err); });
 		});
 	});
 

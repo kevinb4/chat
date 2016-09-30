@@ -56,7 +56,7 @@ This isn't required, but I thought I would leave this here. It's very useful for
 - [x] Add a command to delete messages with specific text
 - [x] Add an afk command
 - [x] Add custom emotes
-- [ ] @mentions
+- [x] @mentions
 - [ ] Write a client in VB.net (maybe)
 - [ ] Write an andriod app (maybe)
 
