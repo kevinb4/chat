@@ -12,7 +12,7 @@ var socket = io(), username = $('#username'), btnLogin = $('#btnLogin'), btnRegi
 /**
  * Handles logging in
  */
-function login() {
+function login () {
 	var loginDetails = { username: txtUsername.val(), password: txtPassword.val() }
 
 	socket.emit('user login', loginDetails, function (data) {
@@ -31,7 +31,7 @@ function login() {
 /**
  * Handles sending messages
  */
-function sendMessage() {
+function sendMessage () {
 	socket.emit('rstatus');
 	if (isEdit === true) {
 		socket.emit('edit message', reply.val());
@@ -47,7 +47,7 @@ function sendMessage() {
  * Adds the message to the chat box
  * @param {msg}
  */
-function appendMessage(msg) {
+function appendMessage (msg) {
 	var scrollpos = (chatbox).scrollTop(),
 		scrolltotal = chatbox.prop('scrollHeight'),
 		bottom = scrolltotal - scrollpos;
@@ -66,7 +66,7 @@ function appendMessage(msg) {
  * Adds the recent messages recieved from the server
  * @param {msgs}
  */
-function loadMessages(msgs) {
+function loadMessages (msgs) {
 	for (var i = Object.keys(msgs).length - 1; i >= 0; i--) {
 		appendMessage(message(msgs[i]));
 	}
@@ -76,10 +76,26 @@ function loadMessages(msgs) {
  * Sends the id of the text to the server
  * @param {object}
  */
-function clickHandler(object) {
+function clickHandler (object) {
 	socket.emit('delete message', object.id);
 }
 
+/**
+ * Removes the highlight for message deleting
+ * (tested with firefox and chrome)
+ */
+function removeHighlight () {
+	var x = document.getElementsByTagName('span');
+
+	for (var i = 0; i < x.length; i++)
+		if (x[i].style.background.includes('rgb(255, 142, 142)'))
+			x[i].style = '';
+}
+
+/**
+ * Creates the message
+ * @param {data}
+ */
 function message (data) {
 	var classType,
 		localTime = moment(data.time).format('LT'),
@@ -228,6 +244,9 @@ reply.keydown(function (e) {
 
 		case (value == 27): // esc key
 			isEdit = false;
+			removeHighlight();
+			if (document.getElementById('reply').value.contains('/delete'))
+				document.getElementById('reply').value == '';
 			break;
 
 		case (value == 191): // '/' key
@@ -320,6 +339,8 @@ socket.on('settings', function (data) {
  * @param {data}
  */
 socket.on('del msg id', function (id) {
+	removeHighlight();
+	document.getElementById(id).style = 'background: #ff8e8e; padding: 1.7px;';
 	document.getElementById('reply').value = '/delete ' + id;
 	reply.focus();
 });
