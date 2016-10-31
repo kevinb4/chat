@@ -120,6 +120,11 @@ exports.login = function (data, callback, socket, io, admins, users, status) {
 			if (dbRole == 'Admin')
 				admins[socket.username]++;
 
+			if (socket.role == 'Admin')
+				io.emit('seeDel', true);
+			else
+				io.emit('seeDel', false);
+
 			functions.updateNicknames(io, users, admins, status);
 			functions.cmdMsg(functions.cmdType.Normal, 'User Joined: ' + socket.username);
 			users[socket.username].emit('settings', dbOptions);

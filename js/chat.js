@@ -7,7 +7,8 @@ var socket = io(), username = $('#username'), btnLogin = $('#btnLogin'), btnRegi
 	regUsername = $('#regUsername'), regPassword = $('#regPassword'), regpasswordConfirm = $('#regpasswordConfirm'), txtUsername = $('#username'), txtPassword = $('#password'),
 	loginForm = $('#login'), registerForm = $('#registerForm'), chat = $('#chat'), chatbox = $('#chat-box'), reply = $('#reply'),
 	textarea = $('#chat-textarea'), send = $('#send'), users = $('#online-users'), options = $('#options'), btnOptions = $('#btnOptions'),
-	btnSave = $('#btnSave'), optionslist = $('#options_list'), checkbox1 = document.getElementById('checkbox1'), checkbox2 = document.getElementById('checkbox2'), isEdit = false, audio = new Audio('mp3/alert.mp3');
+	btnSave = $('#btnSave'), optionslist = $('#options_list'), checkbox1 = document.getElementById('checkbox1'), checkbox2 = document.getElementById('checkbox2'), isEdit = false,
+	seeDel, audio = new Audio('mp3/alert.mp3');
 
 /**
  * Handles logging in
@@ -298,9 +299,18 @@ ifvisible.on('wakeup', function () {
 
 /**
  * For testing
+ * @param {data}
  */
 socket.on('console', function (data) {
 	console.log(data)
+});
+
+/**
+ * For seeing deleted messages
+ * @param {data}
+ */
+socket.on('seeDel', function(data) {
+	seeDel = data;
 });
 
 /**
@@ -318,6 +328,10 @@ socket.on('chat message', function (msg) {
 	}
 });
 
+/**
+ * For mention highlights
+ * @param {data}
+ */
 socket.on('mention', function (data) {
 	if (checkbox2.checked)
 		audio.play();
@@ -372,10 +386,15 @@ socket.on('edited message', function (data) {
 socket.on('delete message', function (data) {
 	try {
 		var element = document.getElementById(data);
-		element.outerHTML = '';
+		if (seeDel == true) {
+			element.style = 'background: #eee; padding: 1.7px;';
+			element.innerHTML = '[del] ' + element.innerHTML;
+		} else {
+			element.outerHTML = '';
 
-		delete element;
-		chatbox.perfectScrollbar('update');
+			delete element;
+			chatbox.perfectScrollbar('update');
+		}
 	} catch (err) {
 		console.log(err);
 	}
